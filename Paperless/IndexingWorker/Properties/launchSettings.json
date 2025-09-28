@@ -2,7 +2,7 @@
   "$schema": "https://json.schemastore.org/launchsettings.json",
   "profiles": {
     "IndexingWorker": {
-      "commandName": "Project",
+      "commandName": "Paperless-IndexingWorker",
       "dotnetRunMessages": true,
       "environmentVariables": {
         "DOTNET_ENVIRONMENT": "Development"

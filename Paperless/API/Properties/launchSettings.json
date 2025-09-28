@@ -2,7 +2,7 @@
   "$schema": "https://json.schemastore.org/launchsettings.json",
   "profiles": {
     "http": {
-      "commandName": "Project",
+      "commandName": "Paperless-API",
       "dotnetRunMessages": true,
       "launchBrowser": false,
       "applicationUrl": "http://localhost:5138",
@@ -11,7 +11,7 @@
       }
     },
     "https": {
-      "commandName": "Project",
+      "commandName": "Paperless-API",
       "dotnetRunMessages": true,
       "launchBrowser": false,
       "applicationUrl": "https://localhost:7254;http://localhost:5138",

@@ -2,7 +2,7 @@
   "$schema": "https://json.schemastore.org/launchsettings.json",
   "profiles": {
     "OcrWorker": {
-      "commandName": "Project",
+      "commandName": "Paperless-OcrWorker",
       "dotnetRunMessages": true,
       "environmentVariables": {
         "DOTNET_ENVIRONMENT": "Development"
