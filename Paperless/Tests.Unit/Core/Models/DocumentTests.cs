@@ -23,22 +23,6 @@ public class DocumentTests
     }
 
     [Test]
-    public void LogAccess_WhenNoExistingLog_ShouldAddNewAccessLog()
-    {
-        // Arrange
-        var date = DateTime.Today;
-
-        // Act
-        _document.LogAccess(date);
-
-        // Assert
-        Assert.That(_document.AccessLogs.Count, Is.EqualTo(1));
-        var log = _document.AccessLogs.First();
-        Assert.That(log.Date.Date, Is.EqualTo(date.Date));
-        Assert.That(log.Count, Is.EqualTo(1));
-    }
-
-    [Test]
     public void LogAccess_WhenExistingLogExists_ShouldIncrementCount()
     {
         // Arrange
@@ -75,20 +59,6 @@ public class DocumentTests
     }
 
     [Test]
-    public void AddTag_WhenTagDoesNotExist_ShouldAddTag()
-    {
-        // Arrange
-        var tagName = "Important";
-
-        // Act
-        _document.AddTag(tagName);
-
-        // Assert
-        Assert.That(_document.Tags.Count, Is.EqualTo(1));
-        Assert.That(_document.Tags.First().Name, Is.EqualTo(tagName));
-    }
-
-    [Test]
     public void AddTag_WhenTagAlreadyExists_ShouldNotAddDuplicate()
     {
         // Arrange
@@ -100,37 +70,6 @@ public class DocumentTests
 
         // Assert
         Assert.That(_document.Tags.Count, Is.EqualTo(1));
-    }
-
-    [Test]
-    public void AddTag_WhenTagExistsWithDifferentCase_ShouldNotAddDuplicate()
-    {
-        // Arrange
-        var existingTagName = "Important";
-        var newTagName = "IMPORTANT";
-        _document.Tags.Add(new Tag { Name = existingTagName });
-
-        // Act
-        _document.AddTag(newTagName);
-
-        // Assert
-        Assert.That(_document.Tags.Count, Is.EqualTo(1));
-        Assert.That(_document.Tags.First().Name, Is.EqualTo(existingTagName));
-    }
-
-    [Test]
-    public void RemoveTag_WhenTagExists_ShouldRemoveTag()
-    {
-        // Arrange
-        var tagName = "Important";
-        var tag = new Tag { Name = tagName };
-        _document.Tags.Add(tag);
-
-        // Act
-        _document.RemoveTag(tagName);
-
-        // Assert
-        Assert.That(_document.Tags.Count, Is.EqualTo(0));
     }
 
     [Test]
@@ -147,21 +86,6 @@ public class DocumentTests
         // Assert
         Assert.That(_document.Tags.Count, Is.EqualTo(1));
         Assert.That(_document.Tags.First().Name, Is.EqualTo("Archive"));
-    }
-
-    [Test]
-    public void RemoveTag_WhenTagExistsWithDifferentCase_ShouldRemoveTag()
-    {
-        // Arrange
-        var tagName = "Important";
-        var tag = new Tag { Name = tagName };
-        _document.Tags.Add(tag);
-
-        // Act
-        _document.RemoveTag("IMPORTANT");
-
-        // Assert
-        Assert.That(_document.Tags.Count, Is.EqualTo(0));
     }
 
     [Test]

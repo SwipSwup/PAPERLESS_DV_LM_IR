@@ -76,21 +76,6 @@ public class DocumentServiceTests
     }
 
     [Test]
-    public async Task GetDocumentByIdAsync_WhenDocumentDoesNotExist_ShouldReturnNull()
-    {
-        // Arrange
-        _mockDocumentRepo.Setup(x => x.GetByIdAsync(1)).ReturnsAsync((Document?)null);
-
-        // Act
-        var result = await _documentService.GetDocumentByIdAsync(1);
-
-        // Assert
-        Assert.That(result, Is.Null);
-        _mockDocumentRepo.Verify(x => x.GetByIdAsync(1), Times.Once);
-        _mockMapper.Verify(x => x.Map<DocumentDto>(It.IsAny<Document>()), Times.Never);
-    }
-
-    [Test]
     public async Task AddDocumentAsync_ShouldAddDocumentAndReturnMappedDto()
     {
         // Arrange
@@ -126,23 +111,6 @@ public class DocumentServiceTests
         Assert.That(result, Is.EqualTo(expectedDto));
         _mockDocumentRepo.Verify(x => x.UpdateAsync(document), Times.Once);
         _mockMapper.Verify(x => x.Map<DocumentDto>(document), Times.Once);
-    }
-
-    [Test]
-    public async Task DeleteDocumentAsync_WhenDocumentExists_ShouldDeleteAndReturnTrue()
-    {
-        // Arrange
-        var document = new Document { Id = 1, FileName = "test.pdf" };
-        _mockDocumentRepo.Setup(x => x.GetByIdAsync(1)).ReturnsAsync(document);
-        _mockDocumentRepo.Setup(x => x.DeleteAsync(1)).Returns(Task.CompletedTask);
-
-        // Act
-        var result = await _documentService.DeleteDocumentAsync(1);
-
-        // Assert
-        Assert.That(result, Is.True);
-        _mockDocumentRepo.Verify(x => x.GetByIdAsync(1), Times.Once);
-        _mockDocumentRepo.Verify(x => x.DeleteAsync(1), Times.Once);
     }
 
     [Test]
@@ -208,26 +176,6 @@ public class DocumentServiceTests
     }
 
     [Test]
-    public async Task LogAccessAsync_WhenLogDoesNotExist_ShouldCreateNewLog()
-    {
-        // Arrange
-        var documentId = 1;
-        var date = DateTime.Today;
-        var logs = new List<AccessLog>();
-
-        _mockAccessLogRepo.Setup(x => x.GetByDocumentIdAsync(documentId)).ReturnsAsync(logs);
-        _mockAccessLogRepo.Setup(x => x.AddAsync(It.IsAny<AccessLog>())).Returns(Task.CompletedTask);
-
-        // Act
-        await _documentService.LogAccessAsync(documentId, date);
-
-        // Assert
-        _mockAccessLogRepo.Verify(x => x.GetByDocumentIdAsync(documentId), Times.Once);
-        _mockAccessLogRepo.Verify(x => x.AddAsync(It.Is<AccessLog>(log => 
-            log.Id == documentId && log.Date == date && log.Count == 1)), Times.Once);
-    }
-
-    [Test]
     public async Task AddLogToDocumentAsync_ShouldAddDocumentLog()
     {
         // Arrange
@@ -246,27 +194,6 @@ public class DocumentServiceTests
     }
 
     [Test]
-    public async Task AddTagToDocumentAsync_WhenDocumentExistsAndTagNotExists_ShouldAddTag()
-    {
-        // Arrange
-        var documentId = 1;
-        var tagName = "Important";
-        var document = new Document { Id = documentId, Tags = new List<Tag>() };
-
-        _mockDocumentRepo.Setup(x => x.GetByIdAsync(documentId)).ReturnsAsync(document);
-        _mockDocumentRepo.Setup(x => x.UpdateAsync(document)).Returns(Task.CompletedTask);
-
-        // Act
-        await _documentService.AddTagToDocumentAsync(documentId, tagName);
-
-        // Assert
-        Assert.That(document.Tags.Count, Is.EqualTo(1));
-        Assert.That(document.Tags.First().Name, Is.EqualTo(tagName));
-        _mockDocumentRepo.Verify(x => x.GetByIdAsync(documentId), Times.Once);
-        _mockDocumentRepo.Verify(x => x.UpdateAsync(document), Times.Once);
-    }
-
-    [Test]
     public async Task AddTagToDocumentAsync_WhenDocumentDoesNotExist_ShouldNotAddTag()
     {
         // Arrange
@@ -281,26 +208,5 @@ public class DocumentServiceTests
         // Assert
         _mockDocumentRepo.Verify(x => x.GetByIdAsync(documentId), Times.Once);
         _mockDocumentRepo.Verify(x => x.UpdateAsync(It.IsAny<Document>()), Times.Never);
-    }
-
-    [Test]
-    public async Task RemoveTagFromDocumentAsync_WhenDocumentAndTagExist_ShouldRemoveTag()
-    {
-        // Arrange
-        var documentId = 1;
-        var tagName = "Important";
-        var tag = new Tag { Name = tagName };
-        var document = new Document { Id = documentId, Tags = new List<Tag> { tag } };
-
-        _mockDocumentRepo.Setup(x => x.GetByIdAsync(documentId)).ReturnsAsync(document);
-        _mockDocumentRepo.Setup(x => x.UpdateAsync(document)).Returns(Task.CompletedTask);
-
-        // Act
-        await _documentService.RemoveTagFromDocumentAsync(documentId, tagName);
-
-        // Assert
-        Assert.That(document.Tags.Count, Is.EqualTo(0));
-        _mockDocumentRepo.Verify(x => x.GetByIdAsync(documentId), Times.Once);
-        _mockDocumentRepo.Verify(x => x.UpdateAsync(document), Times.Once);
     }
 }

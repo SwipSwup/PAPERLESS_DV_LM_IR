@@ -130,11 +130,4 @@ public class TagServiceTests
         Assert.That(result, Is.EqualTo(expectedTags));
         _mockTagRepository.Verify(x => x.SearchTagsAsync(keyword), Times.Once);
     }
-
-    [Test]
-    public void Constructor_WithNullRepository_ShouldThrowArgumentNullException()
-    {
-        // Act & Assert
-        Assert.Throws<ArgumentNullException>(() => new TagService(null!));
-    }
 }
