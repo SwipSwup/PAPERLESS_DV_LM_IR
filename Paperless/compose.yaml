@@ -78,6 +78,7 @@ services:
       - rabbitmq
     environment:
       - DOTNET_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080;https://+:8081
 
   # --- Infrastructure ---
   postgres:

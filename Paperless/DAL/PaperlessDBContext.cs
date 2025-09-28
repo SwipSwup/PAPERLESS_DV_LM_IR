@@ -9,33 +9,33 @@ namespace DAL
         public PaperlessDBContext(DbContextOptions<PaperlessDBContext> options)
             : base(options) { }
 
-        public DbSet<Document> Documents { get; set; } = null!;
-        public DbSet<Tag> Tags { get; set; } = null!;
-        public DbSet<AccessLog> AccessLogs { get; set; } = null!;
-        public DbSet<DocumentLog> DocumentLogs { get; set; } = null!;
+        public DbSet<DocumentEntity> Documents { get; set; } = null!;
+        public DbSet<TagEntity> Tags { get; set; } = null!;
+        public DbSet<AccessLogEntity> AccessLogs { get; set; } = null!;
+        public DbSet<DocumentLogEntity> DocumentLogs { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
             // Document-Tag many-to-many
-            modelBuilder.Entity<Document>()
+            modelBuilder.Entity<DocumentEntity>()
                 .HasMany(d => d.Tags)
                 .WithMany(t => t.Documents)
                 .UsingEntity<Dictionary<string, object>>(
                     "DocumentTag",
-                    j => j.HasOne<Tag>().WithMany().HasForeignKey("TagId"),
-                    j => j.HasOne<Document>().WithMany().HasForeignKey("DocumentId"));
+                    j => j.HasOne<TagEntity>().WithMany().HasForeignKey("TagId"),
+                    j => j.HasOne<DocumentEntity>().WithMany().HasForeignKey("DocumentId"));
 
             // AccessLog -> Document one-to-many
-            modelBuilder.Entity<AccessLog>()
-                .HasOne(al => al.Document)
+            modelBuilder.Entity<AccessLogEntity>()
+                .HasOne(al => al.DocumentEntity)
                 .WithMany(d => d.AccessLogs)
                 .HasForeignKey(al => al.DocumentId);
 
             // DocumentLog -> Document one-to-many
-            modelBuilder.Entity<DocumentLog>()
-                .HasOne(dl => dl.Document)
+            modelBuilder.Entity<DocumentLogEntity>()
+                .HasOne(dl => dl.DocumentEntity)
                 .WithMany(d => d.Logs)
                 .HasForeignKey(dl => dl.DocumentId);
         }

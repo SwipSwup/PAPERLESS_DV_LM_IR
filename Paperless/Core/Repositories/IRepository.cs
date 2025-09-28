@@ -1,7 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Threading.Tasks;
-
-namespace DAL.Repositories;
+﻿namespace Core.Repositories;
 
 public interface IRepository<T> where T : class
 {

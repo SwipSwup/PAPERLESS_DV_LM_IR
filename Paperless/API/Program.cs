@@ -1,41 +1,85 @@
+using BL.Services;
+using Core.Repositories.Interfaces;
+using DAL;
+using DAL.Repositories.Implementations;
+using Microsoft.EntityFrameworkCore;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
+// --------------------
+// Configure Database
+// --------------------
+builder.Services.AddDbContext<PaperlessDBContext>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"))
+);
+
+// --------------------
+// Register Repositories
+// --------------------
+builder.Services.AddScoped<IDocumentRepository, DocumentRepository>();
+builder.Services.AddScoped<IAccessLogRepository, AccessLogRepository>();
+builder.Services.AddScoped<IDocumentLogRepository, DocumentLogRepository>();
+builder.Services.AddScoped<ITagRepository, TagRepository>();
+
+// --------------------
+// Register Services (BL)
+// --------------------
+builder.Services.AddScoped<DocumentService>();
+builder.Services.AddScoped<TagService>();
+builder.Services.AddScoped<AccessLogService>();
+
+// --------------------
+// Register AutoMapper
+// --------------------
+builder.Services.AddAutoMapper(cfg =>
+{
+    cfg.AddProfile<DAL.Mappings.DalMappingProfile>();
+    cfg.AddProfile<BL.Mappings.BlMappingProfile>();
+});
+
+// --------------------
+// Add Controllers
+// --------------------
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+//builder.Services.AddSwaggerGen();
+
+// --------------------
+// Add CORS
+// --------------------
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+    {
+        policy.AllowAnyOrigin()
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
+
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.ListenAnyIP(8080); 
+    options.ListenAnyIP(8081);
+});
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+// --------------------
+// Configure Middleware
+// --------------------
+/*if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
-}
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}*/
 
 app.UseHttpsRedirection();
+app.UseCors();
+//app.UseAuthorization();
+app.MapControllers();
 
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
-
-app.MapGet("/weatherforecast", () =>
-    {
-        var forecast = Enumerable.Range(1, 5).Select(index =>
-                new WeatherForecast
-                (
-                    DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-                    Random.Shared.Next(-20, 55),
-                    summaries[Random.Shared.Next(summaries.Length)]
-                ))
-            .ToArray();
-        return forecast;
-    })
-    .WithName("GetWeatherForecast");
-
+// --------------------
+// Run App
+// --------------------
 app.Run();
-
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}

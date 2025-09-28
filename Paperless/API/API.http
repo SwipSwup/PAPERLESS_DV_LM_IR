@@ -1,6 +1,125 @@
-@API_HostAddress = http://localhost:5138
+@API_HostAddress = http://localhost:8085
 
-GET {{API_HostAddress}}/weatherforecast/
+# =========================
+# DOCUMENT ENDPOINTS
+# =========================
+
+### Get all documents
+GET {{API_HostAddress}}/api/document
 Accept: application/json
 
 ###
+
+### Get document by ID
+GET {{API_HostAddress}}/api/document/1
+Accept: application/json
+
+###
+
+### Create new document
+POST {{API_HostAddress}}/api/document
+Content-Type: application/json
+Accept: application/json
+
+{
+  "id": 0,
+  "fileName": "example.pdf",
+  "filePath": "/uploads/example.pdf",
+  "ocrText": null,
+  "summary": null,
+  "uploadedAt": "2025-09-28T12:00:00Z",
+  "tags": [],
+  "logs": [],
+  "accessLogs": []
+}
+
+###
+
+### Update document
+PUT {{API_HostAddress}}/api/document/1
+Content-Type: application/json
+
+{
+  "id": 1,
+  "fileName": "example-updated.pdf",
+  "filePath": "/uploads/example-updated.pdf",
+  "ocrText": null,
+  "summary": null,
+  "uploadedAt": "2025-09-28T12:00:00Z",
+  "tags": [],
+  "logs": [],
+  "accessLogs": []
+}
+
+###
+
+### Delete document
+DELETE {{API_HostAddress}}/api/document/1
+
+###
+
+### Search documents
+GET {{API_HostAddress}}/api/document/search?keyword=example
+Accept: application/json
+
+# =========================
+# TAG ENDPOINTS
+# =========================
+
+### Get all tags
+GET {{API_HostAddress}}/api/tag
+Accept: application/json
+
+###
+
+### Get tag by ID
+GET {{API_HostAddress}}/api/tag/1
+Accept: application/json
+
+###
+
+### Create new tag
+POST {{API_HostAddress}}/api/tag
+Content-Type: application/json
+Accept: application/json
+
+{
+  "id": 0,
+  "name": "Important"
+}
+
+###
+
+### Update tag
+PUT {{API_HostAddress}}/api/tag/1
+Content-Type: application/json
+
+{
+  "id": 1,
+  "name": "VeryImportant"
+}
+
+###
+
+### Delete tag
+DELETE {{API_HostAddress}}/api/tag/1
+
+###
+
+### Search tags
+GET {{API_HostAddress}}/api/tag/search?keyword=Important
+Accept: application/json
+
+# =========================
+# ACCESS LOG ENDPOINTS
+# =========================
+
+### Get all access logs
+GET {{API_HostAddress}}/api/accesslog
+Accept: application/json
+
+###
+
+### Get access log by ID
+GET {{API_HostAddress}}/api/accesslog/1
+Accept: application/json

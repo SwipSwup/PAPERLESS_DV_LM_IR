@@ -1,8 +1,6 @@
-﻿using System;
-
-namespace DAL.Models
+﻿namespace DAL.Models
 {
-    public class DocumentLog
+    public class DocumentLogEntity
     {
         public int Id { get; set; }
         public DateTime Timestamp { get; set; }
@@ -10,6 +8,6 @@ namespace DAL.Models
         public string? Details { get; set; }
 
         public int DocumentId { get; set; }
-        public Document Document { get; set; } = null!;
+        public DocumentEntity DocumentEntity { get; set; } = null!;
     }
 }
