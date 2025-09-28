@@ -5,16 +5,10 @@ using Core.Repositories.Interfaces;
 
 namespace BL.Services
 {
-    public class AccessLogService
+    public class AccessLogService(IAccessLogRepository accessLogRepo, IMapper mapper)
     {
-        private readonly IAccessLogRepository _accessLogRepo;
-        private readonly IMapper _mapper;
-
-        public AccessLogService(IAccessLogRepository accessLogRepo, IMapper mapper)
-        {
-            _accessLogRepo = accessLogRepo ?? throw new ArgumentNullException(nameof(accessLogRepo));
-            _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
-        }
+        private readonly IAccessLogRepository _accessLogRepo = accessLogRepo ?? throw new ArgumentNullException(nameof(accessLogRepo));
+        private readonly IMapper _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
 
         // --- CRUD Operations ---
 
