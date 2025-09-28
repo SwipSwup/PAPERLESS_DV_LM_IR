@@ -1,0 +1,112 @@
+# This is a generated file. Not intended for manual editing.
+version: "3.9"
+services:
+  api:
+    build:
+      context: "D:\\FH\\WS25\\SWEN\\Paperless"
+      dockerfile: "API/Dockerfile"
+      target: "base"
+    command: []
+    entrypoint:
+    - "dotnet"
+    - "/app/bin/Debug/net9.0/API.dll"
+    environment:
+      DOTNET_USE_POLLING_FILE_WATCHER: "true"
+    image: "api:dev"
+    ports: []
+    volumes:
+    - "D:\\FH\\WS25\\SWEN\\Paperless\\API:/app:rw"
+    - "D:\\FH\\WS25\\SWEN\\Paperless:/src:rw"
+    - "C:\\Users\\david\\.nuget\\packages:/home/app/.nuget/packages"
+    working_dir: "/app"
+  batchworker:
+    build:
+      context: "D:\\FH\\WS25\\SWEN\\Paperless"
+      dockerfile: "BatchWorker/Dockerfile"
+      target: "base"
+    command: []
+    entrypoint:
+    - "dotnet"
+    - "/app/bin/Debug/net9.0/BatchWorker.dll"
+    environment:
+      DOTNET_USE_POLLING_FILE_WATCHER: "true"
+    image: "batchworker:dev"
+    ports: []
+    volumes:
+    - "D:\\FH\\WS25\\SWEN\\Paperless\\BatchWorker:/app:rw"
+    - "D:\\FH\\WS25\\SWEN\\Paperless:/src:rw"
+    - "C:\\Users\\david\\.nuget\\packages:/home/app/.nuget/packages"
+    working_dir: "/app"
+  genaiworker:
+    build:
+      context: "D:\\FH\\WS25\\SWEN\\Paperless"
+      dockerfile: "GenAIWorker/Dockerfile"
+      target: "base"
+    command: []
+    entrypoint:
+    - "dotnet"
+    - "/app/bin/Debug/net9.0/GenAIWorker.dll"
+    environment:
+      DOTNET_USE_POLLING_FILE_WATCHER: "true"
+    image: "genaiworker:dev"
+    ports: []
+    volumes:
+    - "D:\\FH\\WS25\\SWEN\\Paperless\\GenAIWorker:/app:rw"
+    - "D:\\FH\\WS25\\SWEN\\Paperless:/src:rw"
+    - "C:\\Users\\david\\.nuget\\packages:/home/app/.nuget/packages"
+    working_dir: "/app"
+  indexingworker:
+    build:
+      context: "D:\\FH\\WS25\\SWEN\\Paperless"
+      dockerfile: "IndexingWorker/Dockerfile"
+      target: "base"
+    command: []
+    entrypoint:
+    - "dotnet"
+    - "/app/bin/Debug/net9.0/IndexingWorker.dll"
+    environment:
+      DOTNET_USE_POLLING_FILE_WATCHER: "true"
+    image: "indexingworker:dev"
+    ports: []
+    volumes:
+    - "D:\\FH\\WS25\\SWEN\\Paperless\\IndexingWorker:/app:rw"
+    - "D:\\FH\\WS25\\SWEN\\Paperless:/src:rw"
+    - "C:\\Users\\david\\.nuget\\packages:/home/app/.nuget/packages"
+    working_dir: "/app"
+  ocrworker:
+    build:
+      context: "D:\\FH\\WS25\\SWEN\\Paperless"
+      dockerfile: "OcrWorker/Dockerfile"
+      target: "base"
+    command: []
+    entrypoint:
+    - "dotnet"
+    - "/app/bin/Debug/net9.0/OcrWorker.dll"
+    environment:
+      DOTNET_USE_POLLING_FILE_WATCHER: "true"
+    image: "ocrworker:dev"
+    ports: []
+    volumes:
+    - "D:\\FH\\WS25\\SWEN\\Paperless\\OcrWorker:/app:rw"
+    - "D:\\FH\\WS25\\SWEN\\Paperless:/src:rw"
+    - "C:\\Users\\david\\.nuget\\packages:/home/app/.nuget/packages"
+    working_dir: "/app"
+  ui:
+    build:
+      context: "D:\\FH\\WS25\\SWEN\\Paperless"
+      dockerfile: "UI/Dockerfile"
+      target: "base"
+    command: []
+    entrypoint:
+    - "dotnet"
+    - "/app/bin/Debug/net9.0/UI.dll"
+    environment:
+      ASPNETCORE_STATICWEBASSETS: "/app/bin/Debug/net9.0/UI.staticwebassets.runtime.CT.json"
+      DOTNET_USE_POLLING_FILE_WATCHER: "true"
+    image: "ui:dev"
+    ports: []
+    volumes:
+    - "D:\\FH\\WS25\\SWEN\\Paperless\\UI:/app:rw"
+    - "D:\\FH\\WS25\\SWEN\\Paperless:/src:rw"
+    - "C:\\Users\\david\\.nuget\\packages:/home/app/.nuget/packages"
+    working_dir: "/app"

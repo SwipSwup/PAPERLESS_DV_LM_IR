@@ -1,0 +1,131 @@
+﻿version: "3.9"
+
+services:
+  # --- Workers ---
+  ocrworker:
+    container_name: paperless-ocrworker
+    build:
+      context: .
+      dockerfile: OcrWorker/Dockerfile
+    depends_on:
+      - rabbitmq
+      - minio
+    environment:
+      - DOTNET_ENVIRONMENT=Production
+
+  genaiworker:
+    container_name: paperless-genaiworker
+    build:
+      context: .
+      dockerfile: GenAIWorker/Dockerfile
+    depends_on:
+      - rabbitmq
+    environment:
+      - DOTNET_ENVIRONMENT=Production
+
+  indexingworker:
+    container_name: paperless-indexingworker
+    build:
+      context: .
+      dockerfile: IndexingWorker/Dockerfile
+    depends_on:
+      - rabbitmq
+      - elasticsearch
+    environment:
+      - DOTNET_ENVIRONMENT=Production
+
+  batchworker:
+    container_name: paperless-batchworker
+    build:
+      context: .
+      dockerfile: BatchWorker/Dockerfile
+    depends_on:
+      - postgres
+    environment:
+      - DOTNET_ENVIRONMENT=Production
+
+  # --- UI ---
+  ui:
+    container_name: paperless-ui
+    build:
+      context: .
+      dockerfile: UI/Dockerfile
+    ports:
+      - "5012:8080"  # HTTP
+      - "7195:8081"  # HTTPS
+    depends_on:
+      - api
+    environment:
+      - DOTNET_ENVIRONMENT=Development
+
+  # --- API ---
+#  api-1:
+#    image: api-1
+#    build:
+#      context: .
+#      dockerfile: API/Dockerfile
+  
+  api:
+    container_name: paperless-api
+    build:
+      context: .
+      dockerfile: API/Dockerfile
+    ports:
+      - "8085:8080"
+      - "8086:8081"
+    depends_on:
+      - postgres
+      - rabbitmq
+    environment:
+      - DOTNET_ENVIRONMENT=Development
+
+  # --- Infrastructure ---
+  postgres:
+    image: postgres:15
+    container_name: paperless-postgres
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: paperless
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: paperless-rabbitmq
+    ports:
+      - "5672:5672"   # messaging
+      - "15672:15672" # management UI
+
+  minio:
+    image: minio/minio
+    container_name: paperless-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: admin
+      MINIO_ROOT_PASSWORD: password123
+    ports:
+      - "9000:9000" # S3 API
+      - "9001:9001" # MinIO Console
+    volumes:
+      - minio_data:/data
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.0
+    container_name: paperless-elasticsearch
+    environment:
+      - discovery.type=single-node
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    ports:
+      - "9200:9200"
+    volumes:
+      - elastic_data:/usr/share/elasticsearch/data
+
+volumes:
+  postgres_data:
+  minio_data:
+  elastic_data:
+
+ 
