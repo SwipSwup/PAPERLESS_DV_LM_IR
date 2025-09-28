@@ -9,7 +9,7 @@ services:
     command: []
     entrypoint:
     - "dotnet"
-    - "/app/bin/Debug/net9.0/API.dll"
+    - "/app/bin/Debug/net8.0/API.dll"
     environment:
       DOTNET_USE_POLLING_FILE_WATCHER: "true"
     image: "api:dev"

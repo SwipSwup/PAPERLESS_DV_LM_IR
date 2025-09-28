@@ -13,21 +13,10 @@ The system follows a clean architecture pattern with the following layers:
 - **UI**: Blazor Server web application
 - **Workers**: Background services for document processing
 
-## 🚀 Key Features
-
-- **Document Management**: Upload, store, and organize documents with metadata
-- **OCR Processing**: Automatic text extraction from images and PDFs
-- **AI Summarization**: Generate intelligent summaries using GenAI
-- **Full-Text Search**: Elasticsearch-powered search across document content
-- **Tag System**: Flexible tagging for document categorization
-- **Access Logging**: Track document access patterns and usage statistics
-- **Batch Processing**: Handle large document collections efficiently
-- **Modern UI**: Responsive Blazor Server interface
-
 ## 🛠️ Technology Stack
 
 ### Backend
-- **.NET 9** - Latest .NET framework
+- **.NET 8** - Latest .NET framework
 - **ASP.NET Core** - Web API and Blazor Server
 - **Entity Framework Core 9.0.6** - ORM with PostgreSQL
 - **AutoMapper 15.0.0** - Object-to-object mapping
@@ -98,27 +87,8 @@ The system consists of the following services:
 - **Elasticsearch** (Port 9200) - Search engine
 - **MinIO** (Port 9000/9001) - Object storage
 
-## 🚀 Quick Start
+## 🚀 Access the application
 
-### Prerequisites
-- Docker and Docker Compose
-- .NET 9 SDK (for local development)
-
-### Running with Docker Compose
-
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd PAPERLESS_DV_LM_IR
-   ```
-
-2. **Start all services**
-   ```bash
-   cd Paperless
-   docker-compose up -d
-   ```
-
-3. **Access the application**
    - Web UI: http://localhost:5012
    - API: http://localhost:8085
    - RabbitMQ Management: http://localhost:15672
@@ -159,57 +129,6 @@ The system consists of the following services:
 | GET | `/api/accesslog` | Get access logs |
 | GET | `/api/accesslog/{id}` | Get access log by ID |
 
-## 🔧 Development
-
-### Local Development Setup
-
-1. **Start infrastructure services**
-   ```bash
-   docker-compose up postgres rabbitmq elasticsearch minio -d
-   ```
-
-2. **Run migrations**
-   ```bash
-   cd Paperless/API
-   dotnet ef database update
-   ```
-
-3. **Start API**
-   ```bash
-   cd Paperless/API
-   dotnet run
-   ```
-
-4. **Start UI**
-   ```bash
-   cd Paperless/UI
-   dotnet run
-   ```
-
-### Building Individual Services
-
-```bash
-# Build API
-cd Paperless/API
-dotnet build
-
-# Build UI
-cd Paperless/UI
-dotnet build
-
-# Build Workers
-cd Paperless/OcrWorker
-dotnet build
-```
-
-## 🧪 Testing
-
-Run unit tests:
-```bash
-cd Paperless/Tests.Unit
-dotnet test
-```
-
 ## 📊 Data Models
 
 ### Document
@@ -233,53 +152,3 @@ dotnet test
 - **DocumentId**: Reference to document
 - **Date**: Access date
 - **Count**: Number of accesses
-
-## 🔄 Workflow
-
-1. **Document Upload**: User uploads document via UI
-2. **Storage**: Document stored in MinIO object storage
-3. **OCR Processing**: OCR Worker extracts text content
-4. **AI Processing**: GenAI Worker generates summary
-5. **Indexing**: Indexing Worker adds to Elasticsearch
-6. **Search**: Users can search and retrieve documents
-
-## 🚀 Deployment
-
-### Production Considerations
-
-1. **Environment Variables**: Configure production settings
-2. **SSL/TLS**: Enable HTTPS for all services
-3. **Database**: Use managed PostgreSQL service
-4. **Storage**: Configure persistent volumes
-5. **Monitoring**: Add logging and monitoring
-6. **Security**: Implement authentication and authorization
-
-### Scaling
-
-- **Horizontal Scaling**: Add more worker instances
-- **Load Balancing**: Use reverse proxy for API/UI
-- **Database**: Configure read replicas
-- **Caching**: Add Redis for session management
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests
-5. Submit a pull request
-
-## 📄 License
-
-[Add your license information here]
-
-## 🆘 Support
-
-For issues and questions:
-- Create an issue in the repository
-- Check the documentation
-- Review the API endpoints
-
----
-
-**Built with ❤️ using .NET 9 and modern microservices architecture**
