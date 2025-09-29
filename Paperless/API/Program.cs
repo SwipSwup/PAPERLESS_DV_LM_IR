@@ -1,4 +1,6 @@
+using BL.Messaging;
 using BL.Services;
+using Core.Messaging;
 using Core.Repositories.Interfaces;
 using DAL;
 using DAL.Repositories.Implementations;
@@ -27,6 +29,11 @@ builder.Services.AddScoped<ITagRepository, TagRepository>();
 builder.Services.AddScoped<DocumentService>();
 builder.Services.AddScoped<TagService>();
 builder.Services.AddScoped<AccessLogService>();
+
+// --------------------
+// Register Messager
+// --------------------
+builder.Services.AddScoped<IDocumentMessageProducer, RabbitMqProducer>();
 
 // --------------------
 // Register AutoMapper

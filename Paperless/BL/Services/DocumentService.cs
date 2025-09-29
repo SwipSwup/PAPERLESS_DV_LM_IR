@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using Core.DTOs;
+using Core.Messaging;
 using Core.Models;
 using Core.Repositories.Interfaces;
 
@@ -9,12 +10,14 @@ namespace BL.Services
         IDocumentRepository documentRepo,
         IAccessLogRepository accessLogRepo,
         IDocumentLogRepository documentLogRepo,
-        IMapper mapper)
+        IMapper mapper,
+        IDocumentMessageProducer producer)
     {
         private readonly IDocumentRepository _documentRepo = documentRepo ?? throw new ArgumentNullException(nameof(documentRepo));
         private readonly IAccessLogRepository _accessLogRepo = accessLogRepo ?? throw new ArgumentNullException(nameof(accessLogRepo));
         private readonly IDocumentLogRepository _documentLogRepo = documentLogRepo ?? throw new ArgumentNullException(nameof(documentLogRepo));
         private readonly IMapper _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
+        private readonly IDocumentMessageProducer _producer = producer ?? throw new ArgumentNullException(nameof(producer));
 
         // --- CRUD Operations ---
         public async Task<List<DocumentDto>> GetAllDocumentsAsync()
@@ -32,7 +35,16 @@ namespace BL.Services
         public async Task<DocumentDto> AddDocumentAsync(Document document)
         {
             await _documentRepo.AddAsync(document);
-            return _mapper.Map<DocumentDto>(document);
+            
+            await _producer.PublishDocumentAsync(new DocumentMessageDto
+            {
+                DocumentId = document.Id,
+                FilePath = document.FilePath,
+                FileName = document.FileName,
+                UploadedAt = document.UploadedAt
+            });
+            
+            return _mapper.Map<DocumentDto>(document);;
         }
 
         public async Task<DocumentDto> UpdateDocumentAsync(Document document)

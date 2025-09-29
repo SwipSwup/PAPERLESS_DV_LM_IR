@@ -59,11 +59,11 @@ services:
       - DOTNET_ENVIRONMENT=Development
 
   # --- API ---
-#  api-1:
-#    image: api-1
-#    build:
-#      context: .
-#      dockerfile: API/Dockerfile
+  #  api-1:
+  #    image: api-1
+  #    build:
+  #      context: .
+  #      dockerfile: API/Dockerfile
   
   api:
     container_name: paperless-api
@@ -99,6 +99,9 @@ services:
     ports:
       - "5672:5672"   # messaging
       - "15672:15672" # management UI
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin
 
   minio:
     image: minio/minio
