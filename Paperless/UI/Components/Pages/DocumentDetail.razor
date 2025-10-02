@@ -1,0 +1,176 @@
+@page "/documents/{Id:int}"
+@using UI.Services
+@inject IDocumentService DocumentService
+@inject NavigationManager Navigation
+
+<PageTitle>@(document?.FileName ?? "Document") - Paperless-ngx</PageTitle>
+
+<div class="document-detail-page">
+    @if (isLoading)
+    {
+        <div class="loading">
+            <i class="bi bi-arrow-clockwise"></i>
+            <span>Loading document...</span>
+        </div>
+    }
+    else if (document == null)
+    {
+        <div class="not-found">
+            <i class="bi bi-file-earmark-x"></i>
+            <h2>Document not found</h2>
+            <p>The document you're looking for doesn't exist or has been deleted.</p>
+            <button class="btn btn-primary" @onclick="GoBackToDocuments">
+                <i class="bi bi-arrow-left"></i> Back to Documents
+            </button>
+        </div>
+    }
+    else
+    {
+        <div class="document-detail">
+            <div class="document-header">
+                <div class="document-title-section">
+                    <h1>@document.FileName</h1>
+                    <div class="document-meta">
+                        <span class="document-id">#@document.Id</span>
+                        <span class="document-date">Uploaded on @document.UploadedAt.ToString("MMMM dd, yyyy 'at' h:mm tt")</span>
+                    </div>
+                </div>
+                <div class="document-actions">
+                    <button class="btn btn-secondary" @onclick="EditDocument">
+                        <i class="bi bi-pencil"></i> Edit
+                    </button>
+                    <button class="btn btn-secondary" @onclick="DownloadDocument">
+                        <i class="bi bi-download"></i> Download
+                    </button>
+                    <button class="btn btn-danger" @onclick="DeleteDocument">
+                        <i class="bi bi-trash"></i> Delete
+                    </button>
+                </div>
+            </div>
+
+            <div class="document-content">
+                <div class="document-preview">
+                    <div class="preview-placeholder">
+                        <i class="bi bi-file-earmark-text"></i>
+                        <p>Document Preview</p>
+                        <small>Preview functionality would be implemented here</small>
+                    </div>
+                </div>
+
+                <div class="document-info">
+                    <div class="info-section">
+                        <h3>Summary</h3>
+                        @if (!string.IsNullOrEmpty(document.Summary))
+                        {
+                            <p>@document.Summary</p>
+                        }
+                        else
+                        {
+                            <p class="text-secondary">No summary available</p>
+                        }
+                    </div>
+
+                    @if (document.Tags.Any())
+                    {
+                        <div class="info-section">
+                            <h3>Tags</h3>
+                            <div class="document-tags">
+                                @foreach (var tag in document.Tags)
+                                {
+                                    <span class="tag">@tag</span>
+                                }
+                            </div>
+                        </div>
+                    }
+
+                    <div class="info-section">
+                        <h3>Document Information</h3>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <label>File Name:</label>
+                                <span>@document.FileName</span>
+                            </div>
+                            <div class="info-item">
+                                <label>Document ID:</label>
+                                <span>#@document.Id</span>
+                            </div>
+                            <div class="info-item">
+                                <label>Uploaded:</label>
+                                <span>@document.UploadedAt.ToString("MMMM dd, yyyy")</span>
+                            </div>
+                            <div class="info-item">
+                                <label>Tags:</label>
+                                <span>@document.Tags.Count</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public int Id { get; set; }
+    
+    private Core.DTOs.DocumentDto? document;
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDocument();
+    }
+
+    private async Task LoadDocument()
+    {
+        try
+        {
+            isLoading = true;
+            StateHasChanged();
+
+            document = await DocumentService.GetDocumentByIdAsync(Id);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading document: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void EditDocument()
+    {
+        Navigation.NavigateTo($"/documents/{Id}/edit");
+    }
+
+    private void DownloadDocument()
+    {
+        // In a real app, this would trigger a download
+        Console.WriteLine($"Downloading document: {document?.FileName}");
+    }
+
+    private async Task DeleteDocument()
+    {
+        // In a real app, you'd show a confirmation dialog
+        try
+        {
+            if (document != null)
+            {
+                await DocumentService.DeleteDocumentAsync(document.Id);
+                Navigation.NavigateTo("/documents");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error deleting document: {ex.Message}");
+        }
+    }
+
+    private void GoBackToDocuments()
+    {
+        Navigation.NavigateTo("/documents");
+    }
+}

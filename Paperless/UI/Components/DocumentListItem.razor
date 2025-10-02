@@ -1,0 +1,64 @@
+@using Core.DTOs
+
+<div class="document-list-item" @onclick="() => OnView.InvokeAsync(Document)">
+    <div class="document-icon">
+        <i class="bi bi-file-earmark-text"></i>
+    </div>
+    
+    <div class="document-details">
+        <div class="document-title">@Document.FileName</div>
+        <div class="document-meta">
+            <span class="document-id">#@Document.Id</span>
+            <span class="document-date">@Document.UploadedAt.ToString("MMM dd, yyyy")</span>
+        </div>
+        @if (!string.IsNullOrEmpty(Document.Summary))
+        {
+            <div class="document-summary">@Document.Summary</div>
+        }
+    </div>
+
+    @if (Document.Tags.Any())
+    {
+        <div class="document-tags">
+            @foreach (var tag in Document.Tags.Take(4))
+            {
+                <span class="tag">@tag</span>
+            }
+            @if (Document.Tags.Count > 4)
+            {
+                <span class="tag-more">+@(Document.Tags.Count - 4)</span>
+            }
+        </div>
+    }
+
+    <div class="document-actions" @onclick:stopPropagation="true">
+        <div class="action-buttons">
+            <button class="action-btn" @onclick="() => OnView.InvokeAsync(Document)" title="View">
+                <i class="bi bi-eye"></i>
+            </button>
+            <button class="action-btn" @onclick="() => OnEdit.InvokeAsync(Document)" title="Edit">
+                <i class="bi bi-pencil"></i>
+            </button>
+            <button class="action-btn" @onclick="DownloadDocument" title="Download">
+                <i class="bi bi-download"></i>
+            </button>
+            <button class="action-btn action-btn-danger" @onclick="() => OnDelete.InvokeAsync(Document)" title="Delete">
+                <i class="bi bi-trash"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public DocumentDto Document { get; set; } = new();
+    [Parameter] public EventCallback<DocumentDto> OnView { get; set; }
+    [Parameter] public EventCallback<DocumentDto> OnEdit { get; set; }
+    [Parameter] public EventCallback<DocumentDto> OnDelete { get; set; }
+
+    private void DownloadDocument()
+    {
+        // In a real app, this would trigger a download
+        Console.WriteLine($"Downloading document: {Document.FileName}");
+    }
+}
+

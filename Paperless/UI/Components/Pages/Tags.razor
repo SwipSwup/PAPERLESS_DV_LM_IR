@@ -1,0 +1,186 @@
+@page "/tags"
+@using UI.Services
+@inject ITagService TagService
+
+<PageTitle>Tags - Paperless-ngx</PageTitle>
+
+<div class="tags-page">
+    <div class="page-header">
+        <div class="page-title">
+            <h1>Tags</h1>
+            <p class="tag-count">@allTags.Count tags</p>
+        </div>
+        <button class="btn btn-primary" @onclick="ShowCreateModal">
+            <i class="bi bi-plus"></i> Create Tag
+        </button>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="loading">
+            <i class="bi bi-arrow-clockwise"></i>
+            <span>Loading tags...</span>
+        </div>
+    }
+    else if (allTags.Any())
+    {
+        <div class="tags-grid">
+            @foreach (var tag in allTags)
+            {
+                <div class="tag-card">
+                    <div class="tag-content">
+                        <div class="tag-name">@tag.Name</div>
+                        <div class="tag-id">ID: @tag.Id</div>
+                    </div>
+                    <div class="tag-actions">
+                        <button class="action-btn" @onclick="() => EditTag(tag)" title="Edit">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                        <button class="action-btn action-btn-danger" @onclick="() => DeleteTag(tag)" title="Delete">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="no-tags">
+            <i class="bi bi-tag"></i>
+            <h3>No tags found</h3>
+            <p>Create your first tag to organize your documents.</p>
+            <button class="btn btn-primary" @onclick="ShowCreateModal">
+                <i class="bi bi-plus"></i> Create Tag
+            </button>
+        </div>
+    }
+</div>
+
+<!-- Create/Edit Tag Modal -->
+@if (showModal)
+{
+    <div class="modal-overlay" @onclick="CloseModal">
+        <div class="modal" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <h3>@(editingTag == null ? "Create Tag" : "Edit Tag")</h3>
+                <button class="modal-close" @onclick="CloseModal">
+                    <i class="bi bi-x"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="tagName">Tag Name</label>
+                    <input type="text" id="tagName" class="form-control" @bind="tagName" placeholder="Enter tag name" />
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" @onclick="CloseModal">Cancel</button>
+                <button class="btn btn-primary" @onclick="SaveTag" disabled="@(string.IsNullOrWhiteSpace(tagName))">
+                    @(editingTag == null ? "Create" : "Update")
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<Core.DTOs.TagDto> allTags = new();
+    private bool isLoading = true;
+    private bool showModal = false;
+    private Core.DTOs.TagDto? editingTag = null;
+    private string tagName = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadTags();
+    }
+
+    private async Task LoadTags()
+    {
+        try
+        {
+            isLoading = true;
+            StateHasChanged();
+
+            allTags = await TagService.GetAllTagsAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading tags: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void ShowCreateModal()
+    {
+        editingTag = null;
+        tagName = string.Empty;
+        showModal = true;
+        StateHasChanged();
+    }
+
+    private void EditTag(Core.DTOs.TagDto tag)
+    {
+        editingTag = tag;
+        tagName = tag.Name;
+        showModal = true;
+        StateHasChanged();
+    }
+
+    private async Task SaveTag()
+    {
+        if (string.IsNullOrWhiteSpace(tagName))
+            return;
+
+        try
+        {
+            if (editingTag == null)
+            {
+                // Create new tag
+                var newTag = new Core.DTOs.TagDto { Name = tagName.Trim() };
+                await TagService.CreateTagAsync(newTag);
+            }
+            else
+            {
+                // Update existing tag
+                editingTag.Name = tagName.Trim();
+                await TagService.UpdateTagAsync(editingTag);
+            }
+
+            await LoadTags();
+            CloseModal();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error saving tag: {ex.Message}");
+        }
+    }
+
+    private async Task DeleteTag(Core.DTOs.TagDto tag)
+    {
+        // In a real app, you'd show a confirmation dialog
+        try
+        {
+            await TagService.DeleteTagAsync(tag.Id);
+            await LoadTags();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error deleting tag: {ex.Message}");
+        }
+    }
+
+    private void CloseModal()
+    {
+        showModal = false;
+        editingTag = null;
+        tagName = string.Empty;
+        StateHasChanged();
+    }
+}
+

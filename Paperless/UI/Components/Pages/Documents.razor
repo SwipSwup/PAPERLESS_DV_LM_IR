@@ -1,0 +1,290 @@
+@page "/documents"
+@using UI.Services
+@using Microsoft.AspNetCore.WebUtilities
+@inject IDocumentService DocumentService
+@inject ITagService TagService
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+
+<PageTitle>Documents - Paperless-ngx</PageTitle>
+
+<div class="documents-page">
+    <div class="page-header">
+        <div class="page-title">
+            <h1>Documents</h1>
+            <p class="document-count">@filteredDocuments.Count documents</p>
+        </div>
+    </div>
+
+    <div class="filters-bar">
+        <div class="filter-group">
+            <input type="text" class="form-control" placeholder="Search documents..." @bind="searchQuery" @onkeypress="HandleSearchKeyPress" style="min-width: 250px;" />
+        </div>
+        
+        <div class="filter-group">
+            <select class="filter-dropdown" @bind="selectedTagFilter" @bind:after="FilterDocuments">
+                <option value="">All Tags</option>
+                @foreach (var tag in allTags)
+                {
+                    <option value="@tag.Name">@tag.Name</option>
+                }
+            </select>
+        </div>
+
+        <div class="filter-group">
+            <select class="filter-dropdown" @bind="sortBy" @bind:after="SortDocuments">
+                <option value="uploaded">Created</option>
+                <option value="name">Name</option>
+                <option value="added">Added</option>
+            </select>
+        </div>
+
+        <div class="filter-group">
+            <select class="filter-dropdown">
+                <option>Title & content</option>
+                <option>Tags</option>
+                <option>Correspondent</option>
+                <option>Document type</option>
+                <option>Storage path</option>
+                <option>Created</option>
+                <option>Added</option>
+                <option>Permissions</option>
+            </select>
+        </div>
+
+        <div class="view-controls">
+            <button class="view-btn @(viewMode == "grid" ? "active" : "")" @onclick="SetGridMode">
+                <i class="bi bi-grid-3x3-gap"></i>
+            </button>
+            <button class="view-btn @(viewMode == "list" ? "active" : "")" @onclick="SetListMode">
+                <i class="bi bi-list"></i>
+            </button>
+        </div>
+
+        <button class="btn btn-secondary" @onclick="ResetFilters">
+            <i class="bi bi-x-circle"></i> Reset filters
+        </button>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="loading">
+            <i class="bi bi-arrow-clockwise"></i>
+            <span>Loading documents...</span>
+        </div>
+    }
+    else if (filteredDocuments.Any())
+    {
+        @if (viewMode == "grid")
+        {
+            <div class="documents-grid">
+                @foreach (var document in paginatedDocuments)
+                {
+                    <DocumentCard Document="document" OnView="ViewDocument" OnEdit="EditDocument" OnDelete="DeleteDocument" />
+                }
+            </div>
+        }
+        else
+        {
+            <div class="documents-list">
+                @foreach (var document in paginatedDocuments)
+                {
+                    <DocumentListItem Document="document" OnView="ViewDocument" OnEdit="EditDocument" OnDelete="DeleteDocument" />
+                }
+            </div>
+        }
+
+        @if (totalPages > 1)
+        {
+            <div class="pagination">
+                <button class="pagination-btn" @onclick="() => ChangePage(currentPage - 1)" disabled="@(currentPage <= 1)">
+                    <i class="bi bi-chevron-left"></i>
+                </button>
+                
+                @for (int i = Math.Max(1, currentPage - 2); i <= Math.Min(totalPages, currentPage + 2); i++)
+                {
+                    <button class="pagination-btn @(i == currentPage ? "active" : "")" @onclick="() => ChangePage(i)">
+                        @i
+                    </button>
+                }
+                
+                <button class="pagination-btn" @onclick="() => ChangePage(currentPage + 1)" disabled="@(currentPage >= totalPages)">
+                    <i class="bi bi-chevron-right"></i>
+                </button>
+            </div>
+        }
+    }
+    else
+    {
+        <div class="no-documents">
+            <i class="bi bi-inbox"></i>
+            <h3>No documents found</h3>
+            <p>Try adjusting your search criteria or upload some documents.</p>
+            <button class="btn btn-primary" @onclick="UploadDocument">
+                <i class="bi bi-file-earmark-plus"></i> Upload Document
+            </button>
+        </div>
+    }
+</div>
+
+@code {
+    private List<Core.DTOs.DocumentDto> allDocuments = new();
+    private List<Core.DTOs.DocumentDto> filteredDocuments = new();
+    private List<Core.DTOs.TagDto> allTags = new();
+    private bool isLoading = true;
+    private string viewMode = "grid";
+    private string selectedTagFilter = "";
+    private string sortBy = "uploaded";
+    private string searchQuery = "";
+    private int currentPage = 1;
+    private int pageSize = 12;
+    private int totalPages => (int)Math.Ceiling((double)filteredDocuments.Count / pageSize);
+    private List<Core.DTOs.DocumentDto> paginatedDocuments => 
+        filteredDocuments.Skip((currentPage - 1) * pageSize).Take(pageSize).ToList();
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Get search query from URL parameters
+        var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
+        if (QueryHelpers.ParseQuery(uri.Query).TryGetValue("search", out var search))
+        {
+            searchQuery = search.FirstOrDefault() ?? "";
+        }
+        
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        try
+        {
+            isLoading = true;
+            StateHasChanged();
+
+            var documentsTask = DocumentService.GetAllDocumentsAsync();
+            var tagsTask = TagService.GetAllTagsAsync();
+
+            await Task.WhenAll(documentsTask, tagsTask);
+
+            allDocuments = await documentsTask;
+            allTags = await tagsTask;
+
+            FilterDocuments();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading data: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void FilterDocuments()
+    {
+        var query = allDocuments.AsEnumerable();
+
+        if (!string.IsNullOrEmpty(selectedTagFilter))
+        {
+            query = query.Where(d => d.Tags.Contains(selectedTagFilter));
+        }
+
+        if (!string.IsNullOrEmpty(searchQuery))
+        {
+            query = query.Where(d => 
+                d.FileName.Contains(searchQuery, StringComparison.OrdinalIgnoreCase) ||
+                (!string.IsNullOrEmpty(d.Summary) && d.Summary.Contains(searchQuery, StringComparison.OrdinalIgnoreCase)) ||
+                d.Tags.Any(tag => tag.Contains(searchQuery, StringComparison.OrdinalIgnoreCase))
+            );
+        }
+
+        filteredDocuments = query.ToList();
+        SortDocuments();
+    }
+
+    private void SortDocuments()
+    {
+        filteredDocuments = sortBy switch
+        {
+            "name" => filteredDocuments.OrderBy(d => d.FileName).ToList(),
+            "uploaded" => filteredDocuments.OrderByDescending(d => d.UploadedAt).ToList(),
+            "added" => filteredDocuments.OrderByDescending(d => d.UploadedAt).ToList(),
+            _ => filteredDocuments.OrderByDescending(d => d.UploadedAt).ToList()
+        };
+
+        currentPage = 1; // Reset to first page when filtering/sorting
+        StateHasChanged();
+    }
+
+    private void SetViewMode(string mode)
+    {
+        viewMode = mode;
+        StateHasChanged();
+    }
+
+    private void SetGridMode()
+    {
+        SetViewMode("grid");
+    }
+
+    private void SetListMode()
+    {
+        SetViewMode("list");
+    }
+
+    private void ResetFilters()
+    {
+        selectedTagFilter = "";
+        sortBy = "uploaded";
+        searchQuery = "";
+        FilterDocuments();
+    }
+
+    private void HandleSearchKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            FilterDocuments();
+        }
+    }
+
+    private void ChangePage(int page)
+    {
+        if (page >= 1 && page <= totalPages)
+        {
+            currentPage = page;
+            StateHasChanged();
+        }
+    }
+
+    private void ViewDocument(Core.DTOs.DocumentDto document)
+    {
+        Navigation.NavigateTo($"/documents/{document.Id}");
+    }
+
+    private void EditDocument(Core.DTOs.DocumentDto document)
+    {
+        Navigation.NavigateTo($"/documents/{document.Id}/edit");
+    }
+
+    private async Task DeleteDocument(Core.DTOs.DocumentDto document)
+    {
+        // In a real app, you'd show a confirmation dialog
+        try
+        {
+            await DocumentService.DeleteDocumentAsync(document.Id);
+            await LoadData(); // Reload data after deletion
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error deleting document: {ex.Message}");
+        }
+    }
+
+    private void UploadDocument()
+    {
+        Navigation.NavigateTo("/documents/upload");
+    }
+}

@@ -1,0 +1,63 @@
+@page "/{*path}"
+@inject NavigationManager Navigation
+
+<PageTitle>@GetPageTitle() - Paperless-ngx</PageTitle>
+
+<div class="placeholder-page">
+    <div class="placeholder-content">
+        <div class="placeholder-icon">
+            <i class="bi bi-tools"></i>
+        </div>
+        <h1>@GetPageTitle()</h1>
+        <p>This page is under construction and will be implemented in future updates.</p>
+        <div class="placeholder-actions">
+            <button class="btn btn-primary" @onclick="GoToDashboard">
+                <i class="bi bi-house"></i> Go to Dashboard
+            </button>
+            <button class="btn btn-secondary" @onclick="GoToDocuments">
+                <i class="bi bi-file-earmark-text"></i> View Documents
+            </button>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public string? Path { get; set; }
+
+    private string GetPageTitle()
+    {
+        if (string.IsNullOrEmpty(Path))
+            return "Page Not Found";
+
+        var segments = Path.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        if (segments.Length == 0)
+            return "Page Not Found";
+
+        var pageName = segments[0];
+        return pageName switch
+        {
+            "correspondents" => "Correspondents",
+            "document-types" => "Document Types",
+            "storage-paths" => "Storage Paths",
+            "custom-fields" => "Custom Fields",
+            "templates" => "Templates",
+            "mail" => "Mail",
+            "settings" => "Settings",
+            "users" => "Users & Groups",
+            "file-tasks" => "File Tasks",
+            "logs" => "Logs",
+            "documentation" => "Documentation",
+            _ => "Page Not Found"
+        };
+    }
+
+    private void GoToDashboard()
+    {
+        Navigation.NavigateTo("/");
+    }
+
+    private void GoToDocuments()
+    {
+        Navigation.NavigateTo("/documents");
+    }
+}

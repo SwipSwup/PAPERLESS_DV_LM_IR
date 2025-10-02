@@ -1,29 +1,143 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="">UI</a>
+﻿<div class="sidebar-header">
+    <button class="sidebar-toggle" @onclick="ToggleSidebar">
+        <i class="bi bi-chevron-left"></i>
+    </button>
+</div>
+
+<div class="nav-scrollable">
+    <nav class="nav flex-column">
+        <!-- Main Navigation -->
+        <div class="nav-section">
+            <div class="nav-item">
+                <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                    <i class="bi bi-speedometer2 nav-icon"></i>
+                    <span class="nav-text">Dashboard</span>
+                </NavLink>
+            </div>
+            <div class="nav-item">
+                <NavLink class="nav-link" href="documents">
+                    <i class="bi bi-file-earmark-text nav-icon"></i>
+                    <span class="nav-text">Documents</span>
+                </NavLink>
+            </div>
+        </div>
+
+        <!-- Saved Views -->
+        <div class="nav-section">
+            <div class="nav-section-title">SAVED VIEWS</div>
+            <div class="nav-item">
+                <NavLink class="nav-link" href="documents?view=recent">
+                    <i class="bi bi-clock nav-icon"></i>
+                    <span class="nav-text">Recently Added</span>
+                </NavLink>
+            </div>
+            <div class="nav-item">
+                <NavLink class="nav-link" href="documents?view=inbox">
+                    <i class="bi bi-inbox nav-icon"></i>
+                    <span class="nav-text">Inbox</span>
+                </NavLink>
+            </div>
+        </div>
+
+        <!-- Manage -->
+        <div class="nav-section">
+            <div class="nav-section-title">MANAGE</div>
+            <div class="nav-item">
+                <NavLink class="nav-link" href="correspondents">
+                    <i class="bi bi-people nav-icon"></i>
+                    <span class="nav-text">Correspondents</span>
+                </NavLink>
+            </div>
+            <div class="nav-item">
+                <NavLink class="nav-link" href="tags">
+                    <i class="bi bi-tag nav-icon"></i>
+                    <span class="nav-text">Tags</span>
+                </NavLink>
+            </div>
+            <div class="nav-item">
+                <NavLink class="nav-link" href="document-types">
+                    <i class="bi bi-hash nav-icon"></i>
+                    <span class="nav-text">Document Types</span>
+                </NavLink>
+            </div>
+            <div class="nav-item">
+                <NavLink class="nav-link" href="storage-paths">
+                    <i class="bi bi-folder nav-icon"></i>
+                    <span class="nav-text">Storage Paths</span>
+                </NavLink>
+            </div>
+            <div class="nav-item">
+                <NavLink class="nav-link" href="custom-fields">
+                    <i class="bi bi-list-check nav-icon"></i>
+                    <span class="nav-text">Custom Fields</span>
+                </NavLink>
+            </div>
+            <div class="nav-item">
+                <NavLink class="nav-link" href="templates">
+                    <i class="bi bi-file-earmark nav-icon"></i>
+                    <span class="nav-text">Templates</span>
+                </NavLink>
+            </div>
+            <div class="nav-item">
+                <NavLink class="nav-link" href="mail">
+                    <i class="bi bi-envelope nav-icon"></i>
+                    <span class="nav-text">Mail</span>
+                </NavLink>
+            </div>
+        </div>
+
+        <!-- Administration -->
+        <div class="nav-section">
+            <div class="nav-section-title">ADMINISTRATION</div>
+            <div class="nav-item">
+                <NavLink class="nav-link" href="settings">
+                    <i class="bi bi-gear nav-icon"></i>
+                    <span class="nav-text">Settings</span>
+                </NavLink>
+            </div>
+            <div class="nav-item">
+                <NavLink class="nav-link" href="users">
+                    <i class="bi bi-people nav-icon"></i>
+                    <span class="nav-text">Users & Groups</span>
+                </NavLink>
+            </div>
+            <div class="nav-item">
+                <NavLink class="nav-link" href="file-tasks">
+                    <i class="bi bi-list-check nav-icon"></i>
+                    <span class="nav-text">File Tasks</span>
+                    <span class="badge badge-danger">16</span>
+                </NavLink>
+            </div>
+            <div class="nav-item">
+                <NavLink class="nav-link" href="logs">
+                    <i class="bi bi-file-text nav-icon"></i>
+                    <span class="nav-text">Logs</span>
+                </NavLink>
+            </div>
+        </div>
+
+        <!-- Documentation -->
+        <div class="nav-section">
+            <div class="nav-item">
+                <NavLink class="nav-link" href="documentation">
+                    <i class="bi bi-question-circle nav-icon"></i>
+                    <span class="nav-text">Documentation</span>
+                </NavLink>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Version -->
+    <div class="sidebar-footer">
+        <div class="version-text">Paperless-ngx v2.0.0</div>
     </div>
 </div>
 
-<input type="checkbox" title="Navigation menu" class="navbar-toggler"/>
+@code {
+    private bool sidebarCollapsed = false;
 
-<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
-    <nav class="nav flex-column">
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
-            </NavLink>
-        </div>
-
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="counter">
-                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Counter
-            </NavLink>
-        </div>
-
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="weather">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Weather
-            </NavLink>
-        </div>
-    </nav>
-</div>
+    private void ToggleSidebar()
+    {
+        sidebarCollapsed = !sidebarCollapsed;
+    }
+}
