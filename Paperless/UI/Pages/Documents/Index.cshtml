@@ -120,8 +120,25 @@ const exampleDocuments = [
 function loadDocuments() {
     try {
         allDocuments = exampleDocuments;
-        document.getElementById('documentsCount').textContent = `${allDocuments.length} documents`;
-        renderDocuments(allDocuments);
+        
+        // Check if search parameter in the URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const searchTerm = urlParams.get('search');
+        
+        if (searchTerm) {
+            // Filter documents based on search term
+            const filteredDocs = allDocuments.filter(doc => 
+                doc.fileName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                (doc.summary && doc.summary.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                doc.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
+            );
+            
+            document.getElementById('documentsCount').textContent = `${filteredDocs.length} documents found for "${searchTerm}"`;
+            renderDocuments(filteredDocs);
+        } else {
+            document.getElementById('documentsCount').textContent = `${allDocuments.length} documents`;
+            renderDocuments(allDocuments);
+        }
     } catch (error) {
         console.error('Error loading documents:', error);
         document.getElementById('documentsCount').textContent = 'Error loading documents';
@@ -235,6 +252,20 @@ document.getElementById('globalSearch').addEventListener('input', function(e) {
     renderDocuments(filteredDocs);
 });
 
+// Handle Enter key press in global search
+document.getElementById('globalSearch').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        const searchTerm = this.value.trim();
+        if (searchTerm) {
+            // Update URL with search parameter and reload
+            window.location.href = `/Documents?search=${encodeURIComponent(searchTerm)}`;
+        } else {
+            // If no sarch term, go to Documents page without search
+            window.location.href = '/Documents';
+        }
+    }
+});
+
 // Upload modal functionality
 function openUploadModal() {
     document.getElementById('uploadModal').style.display = 'block';
@@ -306,6 +337,8 @@ loadDocuments();
     display: flex;
     align-items: center;
     justify-content: center;
+    padding: 20px;
+    box-sizing: border-box;
 }
 
 .modal-content {
@@ -316,6 +349,8 @@ loadDocuments();
     max-width: 500px;
     max-height: 90vh;
     overflow-y: auto;
+    margin: auto;
+    position: relative;
 }
 
 .modal-header {
@@ -424,16 +459,23 @@ loadDocuments();
 }
 
 .search-bar {
+    background-color: #28a745 !important;
+    border-radius: 6px;
+    padding: 0.5rem 1rem;
     position: relative;
 }
 
 .search-bar input {
+    background: none;
+    border: none;
+    color: white;
+    outline: none;
     width: 100%;
-    padding: 0.5rem 1rem 0.5rem 2.5rem;
-    border: 1px solid #404040;
-    border-radius: 6px;
-    background-color: #1a1a1a;
-    color: #ffffff;
+    padding-left: 2rem;
+}
+
+.search-bar input::placeholder {
+    color: rgba(255, 255, 255, 0.8);
 }
 
 .search-bar i {
@@ -441,7 +483,7 @@ loadDocuments();
     left: 0.75rem;
     top: 50%;
     transform: translateY(-50%);
-    color: #b0b0b0;
+    color: rgba(255, 255, 255, 0.8);
 }
 
 .documents-grid {

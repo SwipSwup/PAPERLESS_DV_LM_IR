@@ -262,6 +262,23 @@
                     mainContent.classList.toggle('sidebar-collapsed');
                 });
             }
+            
+            // Global search functionality
+            const globalSearch = document.getElementById('globalSearch');
+            if (globalSearch) {
+                globalSearch.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        const searchTerm = this.value.trim();
+                        if (searchTerm) {
+                            // Redirect to Documents page with search term
+                            window.location.href = `/Documents?search=${encodeURIComponent(searchTerm)}`;
+                        } else {
+                            // If no search term, just go to Documents page
+                            window.location.href = '/Documents';
+                        }
+                    }
+                });
+            }
         });
     </script>
 </body>

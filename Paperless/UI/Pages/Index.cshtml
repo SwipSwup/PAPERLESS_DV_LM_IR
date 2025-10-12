@@ -34,25 +34,50 @@
                 <i class="fas fa-file-alt"></i>
                 <span>View All Documents</span>
             </a>
-            <a href="/Documents/Upload" class="action-button">
+            <button class="action-button" onclick="openUploadModal()">
                 <i class="fas fa-upload"></i>
                 <span>Upload Document</span>
-            </a>
+            </button>
             <a href="/Tags" class="action-button">
                 <i class="fas fa-tags"></i>
                 <span>Manage Tags</span>
             </a>
-            <a href="/Search" class="action-button">
-                <i class="fas fa-search"></i>
-                <span>Search Documents</span>
-            </a>
         </div>
     </div>
 
-    <!-- Recent Documents -->
-    <div class="recent-documents">
-        <h2 class="section-title">Recent Documents</h2>
-        <div id="recentDocuments" class="documents-grid"></div>
+</div>
+
+<!-- Upload Modal -->
+<div id="uploadModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Upload Document</h3>
+            <span class="close" onclick="closeUploadModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="uploadForm" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label for="fileInput">Select File:</label>
+                    <input type="file" id="fileInput" name="file" accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png" required>
+                </div>
+                <div class="form-group">
+                    <label for="documentTitle">Document Title:</label>
+                    <input type="text" id="documentTitle" name="title" placeholder="Enter document title">
+                </div>
+                <div class="form-group">
+                    <label for="documentTags">Tags (comma-separated):</label>
+                    <input type="text" id="documentTags" name="tags" placeholder="e.g., invoice, 2024, legal">
+                </div>
+                <div class="form-group">
+                    <label for="documentSummary">Summary (optional):</label>
+                    <textarea id="documentSummary" name="summary" rows="3" placeholder="Brief description of the document"></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeUploadModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Upload Document</button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 
@@ -115,24 +140,6 @@ function loadDashboard() {
         // Set access logs (hardcoded)
         document.getElementById('accessLogs').textContent = "42";
         
-        // Show recent documents (last 5)
-        const recentDocs = exampleDocuments
-            .sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt))
-            .slice(0, 5);
-        
-        const recentContainer = document.getElementById('recentDocuments');
-        recentContainer.innerHTML = recentDocs.map(doc => `
-            <div class='col-md-4'>
-                <div class='card bg-dark text-light'>
-                    <div class='card-body'>
-                        <h6 class='card-title'>${doc.fileName}</h6>
-                        <p class='card-text small text-muted'>${new Date(doc.uploadedAt).toLocaleDateString()}</p>
-                        <div class='mb-2'>${doc.tags.map(tag => `<span class='badge bg-info me-1'>${tag}</span>`).join('')}</div>
-                        <a href='/Documents/Detail?id=${doc.id}' class='btn btn-outline-light btn-sm'>View</a>
-                    </div>
-                </div>
-            </div>
-        `).join('');
         
     } catch (error) {
         console.error('Error loading dashboard:', error);
@@ -143,6 +150,45 @@ function loadDashboard() {
     }
 }
 
+// Upload modal functionality
+function openUploadModal() {
+    document.getElementById('uploadModal').style.display = 'block';
+}
+
+function closeUploadModal() {
+    document.getElementById('uploadModal').style.display = 'none';
+    document.getElementById('uploadForm').reset();
+}
+
+// Upload form submission
+document.getElementById('uploadForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const fileInput = document.getElementById('fileInput');
+    const titleInput = document.getElementById('documentTitle');
+    const tagsInput = document.getElementById('documentTags');
+    const summaryInput = document.getElementById('documentSummary');
+    
+    if (!fileInput.files[0]) {
+        alert('Please select a file to upload');
+        return;
+    }
+    
+    // Show success message
+    alert('Document uploaded successfully! (Note: This is a demo - no actual file was uploaded)');
+    
+    // Close modal and reset form
+    closeUploadModal();
+});
+
+// Close modal when clicking outside
+window.onclick = function(event) {
+    const modal = document.getElementById('uploadModal');
+    if (event.target === modal) {
+        closeUploadModal();
+    }
+}
+
 loadDashboard();
 </script>
 
@@ -150,4 +196,128 @@ loadDashboard();
 body, .container-fluid { background: #222 !important; }
 .card { border-radius: 12px; }
 .badge { font-size: 0.9em; }
+
+/* Upload Modal Styles */
+.modal {
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.modal-content {
+    background-color: #2c2c2c;
+    border: 1px solid #404040;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+    margin: auto;
+    position: relative;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border-bottom: 1px solid #404040;
+}
+
+.modal-header h3 {
+    margin: 0;
+    color: #ffffff;
+}
+
+.close {
+    color: #b0b0b0;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.close:hover {
+    color: #ffffff;
+}
+
+.modal-body {
+    padding: 1rem;
+}
+
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: #ffffff;
+    font-weight: 500;
+}
+
+.form-group input,
+.form-group textarea {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #404040;
+    border-radius: 4px;
+    background-color: #1a1a1a;
+    color: #ffffff;
+    font-size: 14px;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: #28a745;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #404040;
+}
+
+.btn {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    text-decoration: none;
+    display: inline-block;
+    text-align: center;
+}
+
+.btn-primary {
+    background-color: #28a745;
+    color: #ffffff;
+}
+
+.btn-primary:hover {
+    background-color: #218838;
+}
+
+.btn-secondary {
+    background-color: #6c757d;
+    color: #ffffff;
+}
+
+.btn-secondary:hover {
+    background-color: #5a6268;
+}
 </style>
