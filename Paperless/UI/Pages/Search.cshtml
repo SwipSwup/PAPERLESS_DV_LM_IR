@@ -1,0 +1,140 @@
+@page
+@model SearchModel
+@{
+    ViewData["Title"] = "Search Documents";
+}
+<div class="container-fluid bg-dark text-light min-vh-100">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="py-4">Search Documents</h1>
+        </div>
+    </div>
+    
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-secondary">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="input-group">
+                                <input type="text" class="form-control bg-dark text-light" id="searchInput" placeholder="Enter search keywords...">
+                                <button class="btn btn-outline-light" type="button" onclick="performSearch()">Search</button>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <select class="form-select bg-dark text-light" id="tagFilter">
+                                <option value="">Filter by tag</option>
+                                <!-- Tags will be loaded dynamicaly -->
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-12">
+            <div class="card bg-secondary">
+                <div class="card-body">
+                    <h5 class="card-title">Search Results</h5>
+                    <div id="searchResults" class="row g-3">
+                        <div class="col-12 text-center text-muted">
+                            <p>Enter search terms above to find documents</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let allTags = [];
+
+async function loadTags() {
+    try {
+        const res = await fetch('http://localhost:8085/api/tag');
+        const tags = await res.json();
+        allTags = tags;
+        
+        const select = document.getElementById('tagFilter');
+        select.innerHTML = '<option value="">Filter by tag</option>' + 
+            tags.map(tag => `<option value="${tag.id}">${tag.name}</option>`).join('');
+    } catch (error) {
+        console.error('Error loading tags:', error);
+    }
+}
+
+async function performSearch() {
+    const searchTerm = document.getElementById('searchInput').value.trim();
+    const tagFilter = document.getElementById('tagFilter').value;
+    
+    if (!searchTerm) {
+        alert('Please enter search terms');
+        return;
+    }
+    
+    try {
+        const resultsContainer = document.getElementById('searchResults');
+        resultsContainer.innerHTML = '<div class="col-12 text-center"><div class="spinner-border" role="status"></div></div>';
+        
+        const response = await fetch(`http://localhost:8085/api/document/search?keyword=${encodeURIComponent(searchTerm)}`);
+        const documents = await response.json();
+        
+        // Filter by tag if selected
+        let filteredDocs = documents;
+        if (tagFilter) {
+            filteredDocs = documents.filter(doc => 
+                doc.tags.some(tag => tag.id == tagFilter)
+            );
+        }
+        
+        if (filteredDocs.length === 0) {
+            resultsContainer.innerHTML = '<div class="col-12 text-center text-muted"><p>No documents found matching your search criteria</p></div>';
+            return;
+        }
+        
+        resultsContainer.innerHTML = filteredDocs.map(doc => `
+            <div class='col-md-4'>
+                <div class='card bg-dark text-light'>
+                    <div class='card-body'>
+                        <h6 class='card-title'>${doc.fileName}</h6>
+                        <p class='card-text small text-muted'>${new Date(doc.uploadedAt).toLocaleDateString()}</p>
+                        <div class='mb-2'>${doc.tags.map(tag => `<span class='badge bg-info me-1'>${tag}</span>`).join('')}</div>
+                        ${doc.summary ? `<p class='card-text small'>${doc.summary.substring(0, 100)}...</p>` : ''}
+                        <a href='/Documents/Detail?id=${doc.id}' class='btn btn-outline-light btn-sm'>View Details</a>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+        
+    } catch (error) {
+        console.error('Search error:', error);
+        document.getElementById('searchResults').innerHTML = '<div class="col-12 text-center text-danger"><p>Error performing search</p></div>';
+    }
+}
+
+// Allow search on Enter key
+document.getElementById('searchInput').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        performSearch();
+    }
+});
+
+// Auto-search when tag filter changes
+document.getElementById('tagFilter').addEventListener('change', function() {
+    const searchTerm = document.getElementById('searchInput').value.trim();
+    if (searchTerm) {
+        performSearch();
+    }
+});
+
+loadTags();
+</script>
+
+<style>
+body, .container-fluid { background: #222 !important; }
+.card { border-radius: 12px; }
+.badge { font-size: 0.9em; }
+</style>
