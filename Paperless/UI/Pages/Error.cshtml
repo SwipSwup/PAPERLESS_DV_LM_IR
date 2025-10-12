@@ -1,0 +1,19 @@
+@page
+@model UI.Pages.ErrorModel
+@{
+    ViewData["Title"] = "Error";
+}
+<div class="container-fluid bg-dark text-light min-vh-100 d-flex align-items-center justify-content-center">
+    <div class="text-center">
+        <h1 class="text-danger display-1">⚠️</h1>
+        <h1 class="text-danger">Oops! Something went wrong</h1>
+        <p class="lead">An error occurred while processing your request.</p>
+        @if (Model.ShowRequestId)
+        {
+            <p class="text-muted">
+                <strong>Request ID:</strong> <code>@Model.RequestId</code>
+            </p>
+        }
+        <a href="/" class="btn btn-primary mt-3">Go Home</a>
+    </div>
+</div>

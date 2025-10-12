@@ -1,0 +1,149 @@
+@page
+@model UploadModel
+@{
+    ViewData["Title"] = "Upload Document";
+}
+<div class="container-fluid bg-dark text-light min-vh-100">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="py-4">Upload Document</h1>
+        </div>
+    </div>
+    
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card bg-secondary">
+                <div class="card-body">
+                    <form id="uploadForm" enctype="multipart/form-data">
+                        <div class="mb-3">
+                            <label for="fileInput" class="form-label">Select Document</label>
+                            <input type="file" class="form-control bg-dark text-light" id="fileInput" accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png" required>
+                            <div class="form-text text-light">Supported formats: PDF, DOC, DOCX, TXT, JPG, PNG</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="tagsSelect" class="form-label">Tags</label>
+                            <select class="form-select bg-dark text-light" id="tagsSelect" multiple>
+                                <!-- Tags will be loaded dynamically -->
+                            </select>
+                            <div class="form-text text-light">Hold Ctrl/Cmd to select multiple tags</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="customTags" class="form-label">Custom Tags (comma-separated)</label>
+                            <input type="text" class="form-control bg-dark text-light" id="customTags" placeholder="e.g., important, work, personal">
+                        </div>
+                        
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-success">Upload Document</button>
+                            <a href="/Documents" class="btn btn-outline-light">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Upload Progress -->
+    <div class="row justify-content-center mt-4" id="uploadProgress" style="display: none;">
+        <div class="col-md-8">
+            <div class="card bg-secondary">
+                <div class="card-body">
+                    <h5>Upload Progress</h5>
+                    <div class="progress mb-3">
+                        <div class="progress-bar" role="progressbar" style="width: 0%"></div>
+                    </div>
+                    <p id="uploadStatus">Preparing upload...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let availableTags = [];
+
+async function loadTags() {
+    try {
+        const res = await fetch('http://localhost:8085/api/tag');
+        const tags = await res.json();
+        availableTags = tags;
+        
+        const select = document.getElementById('tagsSelect');
+        select.innerHTML = tags.map(tag => 
+            `<option value="${tag.id}">${tag.name}</option>`
+        ).join('');
+    } catch (error) {
+        console.error('Error loading tags:', error);
+    }
+}
+
+document.getElementById('uploadForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const fileInput = document.getElementById('fileInput');
+    const tagsSelect = document.getElementById('tagsSelect');
+    const customTags = document.getElementById('customTags');
+    
+    if (!fileInput.files[0]) {
+        alert('Please select a file to upload');
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('file', fileInput.files[0]);
+    
+    // Add selected tags
+    const selectedTags = Array.from(tagsSelect.selectedOptions).map(option => option.value);
+    selectedTags.forEach(tagId => {
+        formData.append('tags', tagId);
+    });
+    
+    // Add custom tags
+    if (customTags.value.trim()) {
+        const customTagNames = customTags.value.split(',').map(tag => tag.trim()).filter(tag => tag);
+        customTagNames.forEach(tagName => {
+            formData.append('customTags', tagName);
+        });
+    }
+    
+    // Show progress
+    document.getElementById('uploadProgress').style.display = 'block';
+    const progressBar = document.querySelector('.progress-bar');
+    const statusText = document.getElementById('uploadStatus');
+    
+    try {
+        statusText.textContent = 'Uploading document...';
+        progressBar.style.width = '50%';
+        
+        // später mit api
+        const response = await fetch('http://localhost:8085/api/document', {
+            method: 'POST',
+            body: formData
+        });
+        
+        progressBar.style.width = '100%';
+        statusText.textContent = 'Upload completed!';
+        
+        if (response.ok) {
+            setTimeout(() => {
+                window.location.href = '/Documents';
+            }, 2000);
+        } else {
+            statusText.textContent = 'Upload failed. Please try again.';
+            progressBar.classList.add('bg-danger');
+        }
+    } catch (error) {
+        console.error('Upload error:', error);
+        statusText.textContent = 'Upload failed. Please try again.';
+        progressBar.classList.add('bg-danger');
+    }
+});
+
+loadTags();
+</script>
+
+<style>
+body, .container-fluid { background: #222 !important; }
+.card { border-radius: 12px; }
+</style>

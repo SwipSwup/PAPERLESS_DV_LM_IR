@@ -1,6 +1,4 @@
-﻿version: "3.9"
-
-services:
+﻿services:
   # --- Workers ---
   ocrworker:
     container_name: paperless-ocrworker
@@ -51,7 +49,7 @@ services:
       context: .
       dockerfile: UI/Dockerfile
     ports:
-      - "5012:8080"  # HTTP
+      - "5012:8080"    # HTTP (match app's actual listening port)
       - "7195:8081"  # HTTPS
     depends_on:
       - api

@@ -1,0 +1,153 @@
+@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Dashboard";
+}
+<div class="dashboard-content">
+    <h1 class="dashboard-title">Dashboard</h1>
+    
+    <!-- Statistics Cards -->
+    <div class="stats-grid">
+        <div class="stat-card success">
+            <div class="stat-title">Total Documents</div>
+            <div class="stat-value" id="totalDocuments">-</div>
+        </div>
+        <div class="stat-card info">
+            <div class="stat-title">Total Tags</div>
+            <div class="stat-value" id="totalTags">-</div>
+        </div>
+        <div class="stat-card warning">
+            <div class="stat-title">Recent Uploads</div>
+            <div class="stat-value" id="recentUploads">-</div>
+        </div>
+        <div class="stat-card danger">
+            <div class="stat-title">Access Logs</div>
+            <div class="stat-value" id="accessLogs">-</div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="quick-actions">
+        <h2 class="section-title">Quick Actions</h2>
+        <div class="action-buttons">
+            <a href="/Documents" class="action-button">
+                <i class="fas fa-file-alt"></i>
+                <span>View All Documents</span>
+            </a>
+            <a href="/Documents/Upload" class="action-button">
+                <i class="fas fa-upload"></i>
+                <span>Upload Document</span>
+            </a>
+            <a href="/Tags" class="action-button">
+                <i class="fas fa-tags"></i>
+                <span>Manage Tags</span>
+            </a>
+            <a href="/Search" class="action-button">
+                <i class="fas fa-search"></i>
+                <span>Search Documents</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Recent Documents -->
+    <div class="recent-documents">
+        <h2 class="section-title">Recent Documents</h2>
+        <div id="recentDocuments" class="documents-grid"></div>
+    </div>
+</div>
+
+<script>
+// Hardcoded example data for testing
+const exampleDocuments = [
+    {
+        id: 1,
+        fileName: "Contract_2024.pdf",
+        uploadedAt: "2024-01-15T10:30:00Z",
+        summary: "Annual service contract for software maintenance and support services.",
+        tags: ["contract", "legal", "2024"]
+    },
+    {
+        id: 2,
+        fileName: "Invoice_12345.pdf",
+        uploadedAt: "2024-01-14T14:20:00Z",
+        summary: "Monthly invoice for cloud services and software licensing fees.",
+        tags: ["invoice", "billing", "cloud"]
+    },
+    {
+        id: 3,
+        fileName: "Meeting_Notes_Jan15.docx",
+        uploadedAt: "2024-01-13T16:45:00Z",
+        summary: "Meeting notes from project planning session covering Q1 objectives and deliverables.",
+        tags: ["meeting", "notes", "planning"]
+    },
+    {
+        id: 4,
+        fileName: "Receipt_Office_Supplies.pdf",
+        uploadedAt: "2024-01-12T09:15:00Z",
+        summary: "Receipt for office supplies including paper, pens, and other stationery items.",
+        tags: ["receipt", "expenses", "office"]
+    },
+    {
+        id: 5,
+        fileName: "Report_Q4_2023.pdf",
+        uploadedAt: "2024-01-11T11:30:00Z",
+        summary: "Quarterly business report covering financial performance and key metrics.",
+        tags: ["report", "quarterly", "finance"]
+    }
+];
+
+const exampleTags = ["contract", "legal", "2024", "invoice", "billing", "cloud", "meeting", "notes", "planning", "receipt", "expenses", "office", "report", "quarterly", "finance"];
+
+function loadDashboard() {
+    try {
+        // Set document count
+        document.getElementById('totalDocuments').textContent = exampleDocuments.length;
+        
+        // Set tags count
+        document.getElementById('totalTags').textContent = exampleTags.length;
+        
+        // Calculate recent uploads (last 7 days)
+        const weekAgo = new Date();
+        weekAgo.setDate(weekAgo.getDate() - 7);
+        const recentCount = exampleDocuments.filter(doc => new Date(doc.uploadedAt) > weekAgo).length;
+        document.getElementById('recentUploads').textContent = recentCount;
+        
+        // Set access logs (hardcoded)
+        document.getElementById('accessLogs').textContent = "42";
+        
+        // Show recent documents (last 5)
+        const recentDocs = exampleDocuments
+            .sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt))
+            .slice(0, 5);
+        
+        const recentContainer = document.getElementById('recentDocuments');
+        recentContainer.innerHTML = recentDocs.map(doc => `
+            <div class='col-md-4'>
+                <div class='card bg-dark text-light'>
+                    <div class='card-body'>
+                        <h6 class='card-title'>${doc.fileName}</h6>
+                        <p class='card-text small text-muted'>${new Date(doc.uploadedAt).toLocaleDateString()}</p>
+                        <div class='mb-2'>${doc.tags.map(tag => `<span class='badge bg-info me-1'>${tag}</span>`).join('')}</div>
+                        <a href='/Documents/Detail?id=${doc.id}' class='btn btn-outline-light btn-sm'>View</a>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+        
+    } catch (error) {
+        console.error('Error loading dashboard:', error);
+        document.getElementById('totalDocuments').textContent = 'Error';
+        document.getElementById('totalTags').textContent = 'Error';
+        document.getElementById('recentUploads').textContent = 'Error';
+        document.getElementById('accessLogs').textContent = 'Error';
+    }
+}
+
+loadDashboard();
+</script>
+
+<style>
+body, .container-fluid { background: #222 !important; }
+.card { border-radius: 12px; }
+.badge { font-size: 0.9em; }
+</style>
