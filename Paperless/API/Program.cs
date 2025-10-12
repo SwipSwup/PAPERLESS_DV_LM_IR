@@ -55,13 +55,17 @@ builder.Services.AddScoped<IValidator<AccessLogDto>, AccessLogDtoValidator>();
 builder.Services.AddScoped<IValidator<DocumentLogDto>, DocumentLogDtoValidator>();
 builder.Services.AddScoped<IValidator<TagDto>, TagDtoValidator>();
 
+// --------------------
+// Add Swagger
+// --------------------
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 
 // --------------------
 // Add Controllers
 // --------------------
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-//builder.Services.AddSwaggerGen();
 
 // --------------------
 // Add CORS
@@ -87,16 +91,23 @@ var app = builder.Build();
 // --------------------
 // Configure Middleware
 // --------------------
-/*if (app.Environment.IsDevelopment())
+if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}*/
+    app.UseSwagger();             
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "My API V1");
+        c.RoutePrefix = string.Empty;
+    });
+}
+
 
 app.UseHttpsRedirection();
 app.UseCors();
 //app.UseAuthorization();
 app.MapControllers();
+
+app.MapGet("/health", () => Results.Ok("Healthy"));
 
 // --------------------
 // Run App

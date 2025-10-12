@@ -1,4 +1,5 @@
 # This is a generated file. Not intended for manual editing.
+version: "3.9"
 services:
   api:
     build:
@@ -98,14 +99,14 @@ services:
     command: []
     entrypoint:
     - "dotnet"
-    - "/app/bin/Debug/net8.0/UI.dll"
+    - "/app/bin/Debug/net9.0/UI.dll"
     environment:
-      ASPNETCORE_STATICWEBASSETS: "/app/bin/Debug/net8.0/UI.staticwebassets.runtime.CT.json"
+      ASPNETCORE_STATICWEBASSETS: "/app/bin/Debug/net9.0/UI.staticwebassets.runtime.CT.json"
       DOTNET_USE_POLLING_FILE_WATCHER: "true"
     image: "ui:dev"
     ports: []
     volumes:
     - "D:\\FH\\WS25\\SWEN\\Paperless\\UI:/app:rw"
     - "D:\\FH\\WS25\\SWEN\\Paperless:/src:rw"
-    - "C:\\Users\\david\\.nuget\\packages:/root/.nuget/packages"
+    - "C:\\Users\\david\\.nuget\\packages:/home/app/.nuget/packages"
     working_dir: "/app"
