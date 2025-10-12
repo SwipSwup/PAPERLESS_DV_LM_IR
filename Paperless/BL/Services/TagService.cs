@@ -1,46 +1,85 @@
-﻿using Core.Models;
+﻿using Core.Exceptions;
+using Core.Models;
 using Core.Repositories.Interfaces;
 
 namespace BL.Services;
+
 public class TagService(ITagRepository tagRepository)
 {
-    private readonly ITagRepository _tagRepository = tagRepository ?? throw new ArgumentNullException(nameof(tagRepository));
+    private readonly ITagRepository _tagRepository =
+        tagRepository ?? throw new ArgumentNullException(nameof(tagRepository));
 
-    // Get all tags
     public async Task<List<Tag>> GetAllTagsAsync()
     {
-        return await _tagRepository.GetAllAsync();
+        try
+        {
+            return await _tagRepository.GetAllAsync();
+        }
+        catch (DataAccessException ex)
+        {
+            throw new ServiceException("Failed to retrieve all tags.", ex);
+        }
     }
 
-    // Get tag by Id
     public async Task<Tag?> GetTagByIdAsync(int id)
     {
-        return await _tagRepository.GetByIdAsync(id);
+        try
+        {
+            return await _tagRepository.GetByIdAsync(id);
+        }
+        catch (DataAccessException ex)
+        {
+            throw new ServiceException($"Failed to retrieve tag with ID {id}.", ex);
+        }
     }
 
-    // Add a new tag
     public async Task<Tag> AddTagAsync(Tag tag)
     {
-        await _tagRepository.AddAsync(tag);
-        return tag;
+        try
+        {
+            await _tagRepository.AddAsync(tag);
+            return tag;
+        }
+        catch (DataAccessException ex)
+        {
+            throw new ServiceException("Failed to add tag.", ex);
+        }
     }
 
-    // Update a tag
     public async Task<Tag> UpdateTagAsync(Tag tag)
     {
-        await _tagRepository.UpdateAsync(tag);
-        return tag;
+        try
+        {
+            await _tagRepository.UpdateAsync(tag);
+            return tag;
+        }
+        catch (DataAccessException ex)
+        {
+            throw new ServiceException($"Failed to update tag with ID {tag.Id}.", ex);
+        }
     }
 
-    // Delete a tag by Id
     public async Task DeleteTagAsync(int id)
     {
-        await _tagRepository.DeleteAsync(id);
+        try
+        {
+            await _tagRepository.DeleteAsync(id);
+        }
+        catch (DataAccessException ex)
+        {
+            throw new ServiceException($"Failed to delete tag with ID {id}.", ex);
+        }
     }
 
-    // Search tags by keyword
     public async Task<List<Tag>> SearchTagsAsync(string keyword)
     {
-        return await _tagRepository.SearchTagsAsync(keyword);
+        try
+        {
+            return await _tagRepository.SearchTagsAsync(keyword);
+        }
+        catch (DataAccessException ex)
+        {
+            throw new ServiceException($"Failed to search tags with keyword '{keyword}'.", ex);
+        }
     }
 }

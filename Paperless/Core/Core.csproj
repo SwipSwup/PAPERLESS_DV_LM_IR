@@ -10,7 +10,4 @@
       <PackageReference Include="AutoMapper" Version="15.0.0" />
     </ItemGroup>
 
-    <ItemGroup>
-    </ItemGroup>
-
 </Project>

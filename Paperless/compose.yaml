@@ -6,8 +6,10 @@
       context: .
       dockerfile: OcrWorker/Dockerfile
     depends_on:
-      - rabbitmq
-      - minio
+      rabbitmq:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
     environment:
       - DOTNET_ENVIRONMENT=Production
 
@@ -17,7 +19,8 @@
       context: .
       dockerfile: GenAIWorker/Dockerfile
     depends_on:
-      - rabbitmq
+      rabbitmq:
+        condition: service_healthy
     environment:
       - DOTNET_ENVIRONMENT=Production
 
@@ -27,8 +30,10 @@
       context: .
       dockerfile: IndexingWorker/Dockerfile
     depends_on:
-      - rabbitmq
-      - elasticsearch
+      rabbitmq:
+        condition: service_healthy
+#      elasticsearch:
+#        condition: service_healthy
     environment:
       - DOTNET_ENVIRONMENT=Production
 
@@ -38,7 +43,8 @@
       context: .
       dockerfile: BatchWorker/Dockerfile
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     environment:
       - DOTNET_ENVIRONMENT=Production
 
@@ -47,22 +53,17 @@
     container_name: paperless-ui
     build:
       context: .
-      dockerfile: UI/Dockerfile
+      dockerfile: UI/Dockerfile 
     ports:
       - "5012:8080"    # HTTP (match app's actual listening port)
       - "7195:8081"  # HTTPS
-    depends_on:
-      - api
+#    depends_on:
+#      api:
+#        condition: service_healthy
     environment:
       - DOTNET_ENVIRONMENT=Development
 
   # --- API ---
-#  api-1:
-#    image: api-1
-#    build:
-#      context: .
-#      dockerfile: API/Dockerfile
-  
   api:
     container_name: paperless-api
     build:
@@ -72,11 +73,19 @@
       - "8085:8080"
       - "8086:8081"
     depends_on:
-      - postgres
-      - rabbitmq
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
     environment:
       - DOTNET_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:8080;https://+:8081
+#    healthcheck:
+#      test: [ "CMD-SHELL", "curl -f http://localhost:8080/health || exit 1" ]
+#      interval: 5s
+#      timeout: 10s
+#      retries: 10
+#      start_period: 10s
 
   # --- Infrastructure ---
   postgres:
@@ -90,13 +99,28 @@
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
 
   rabbitmq:
-    image: rabbitmq:3-management
+    image: rabbitmq:4.1.4-management
     container_name: paperless-rabbitmq
     ports:
       - "5672:5672"   # messaging
       - "15672:15672" # management UI
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_running"]
+      interval: 5s
+      timeout: 10s
+      retries: 10
+      start_period: 5s
 
   minio:
     image: minio/minio
@@ -110,6 +134,12 @@
       - "9001:9001" # MinIO Console
     volumes:
       - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 10s
+      retries: 10
+      start_period: 10s
 
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.15.0
@@ -121,10 +151,14 @@
       - "9200:9200"
     volumes:
       - elastic_data:/usr/share/elasticsearch/data
+#    healthcheck:
+#      test: ["CMD-SHELL", "curl -fsSL http://localhost:9200/_cluster/health | grep -q '\"status\"'"]
+#      interval: 10s
+#      timeout: 10s
+#      retries: 10
+#      start_period: 15s
 
 volumes:
   postgres_data:
   minio_data:
   elastic_data:
-
- 

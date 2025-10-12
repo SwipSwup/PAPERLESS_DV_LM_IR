@@ -1,6 +1,7 @@
 using AutoMapper;
 using BL.Services;
 using Core.DTOs;
+using Core.Messaging;
 using Core.Models;
 using Core.Repositories.Interfaces;
 using Moq;
@@ -13,6 +14,7 @@ public class DocumentServiceTests
     private Mock<IDocumentRepository> _mockDocumentRepo;
     private Mock<IAccessLogRepository> _mockAccessLogRepo;
     private Mock<IDocumentLogRepository> _mockDocumentLogRepo;
+    private Mock<IDocumentMessageProducer> _mockDocumentMessageProducer;
     private Mock<IMapper> _mockMapper;
     private DocumentService _documentService;
 
@@ -22,12 +24,14 @@ public class DocumentServiceTests
         _mockDocumentRepo = new Mock<IDocumentRepository>();
         _mockAccessLogRepo = new Mock<IAccessLogRepository>();
         _mockDocumentLogRepo = new Mock<IDocumentLogRepository>();
+        _mockDocumentMessageProducer = new Mock<IDocumentMessageProducer>();
         _mockMapper = new Mock<IMapper>();
         _documentService = new DocumentService(
             _mockDocumentRepo.Object,
             _mockAccessLogRepo.Object,
             _mockDocumentLogRepo.Object,
-            _mockMapper.Object);
+            _mockMapper.Object,
+            _mockDocumentMessageProducer.Object);
     }
 
     [Test]
