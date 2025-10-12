@@ -1,9 +1,12 @@
+using API.Validators;
 using BL.Messaging;
 using BL.Services;
+using Core.DTOs;
 using Core.Messaging;
 using Core.Repositories.Interfaces;
 using DAL;
 using DAL.Repositories.Implementations;
+using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -43,6 +46,15 @@ builder.Services.AddAutoMapper(cfg =>
     cfg.AddProfile<DAL.Mappings.DalMappingProfile>();
     cfg.AddProfile<BL.Mappings.BlMappingProfile>();
 });
+
+// --------------------
+// Register Validation
+// --------------------
+builder.Services.AddScoped<IValidator<DocumentDto>, DocumentDtoValidator>();
+builder.Services.AddScoped<IValidator<AccessLogDto>, AccessLogDtoValidator>();
+builder.Services.AddScoped<IValidator<DocumentLogDto>, DocumentLogDtoValidator>();
+builder.Services.AddScoped<IValidator<TagDto>, TagDtoValidator>();
+
 
 // --------------------
 // Add Controllers
