@@ -4,33 +4,41 @@ using Core.Exceptions;
 using Core.Messaging;
 using Core.Models;
 using Core.Repositories.Interfaces;
+using log4net;
+using System.Reflection;
 
 namespace BL.Services
 {
-    public class DocumentService(
-        IDocumentRepository documentRepo,
-        IAccessLogRepository accessLogRepo,
-        IDocumentLogRepository documentLogRepo,
-        IMapper mapper,
-        IDocumentMessageProducer producer)
+    public class DocumentService
     {
-        private readonly IDocumentRepository _documentRepo =
-            documentRepo ?? throw new ArgumentNullException(nameof(documentRepo));
+        private static readonly ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod()!.DeclaringType);
 
-        private readonly IAccessLogRepository _accessLogRepo =
-            accessLogRepo ?? throw new ArgumentNullException(nameof(accessLogRepo));
+        private readonly IDocumentRepository _documentRepo;
+        private readonly IAccessLogRepository _accessLogRepo;
+        private readonly IDocumentLogRepository _documentLogRepo;
+        private readonly IMapper _mapper;
+        private readonly IDocumentMessageProducer _producer;
 
-        private readonly IDocumentLogRepository _documentLogRepo =
-            documentLogRepo ?? throw new ArgumentNullException(nameof(documentLogRepo));
+        public DocumentService(
+            IDocumentRepository documentRepo,
+            IAccessLogRepository accessLogRepo,
+            IDocumentLogRepository documentLogRepo,
+            IMapper mapper,
+            IDocumentMessageProducer producer)
+        {
+            _documentRepo = documentRepo ?? throw new ArgumentNullException(nameof(documentRepo));
+            _accessLogRepo = accessLogRepo ?? throw new ArgumentNullException(nameof(accessLogRepo));
+            _documentLogRepo = documentLogRepo ?? throw new ArgumentNullException(nameof(documentLogRepo));
+            _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
+            _producer = producer ?? throw new ArgumentNullException(nameof(producer));
 
-        private readonly IMapper _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
-
-        private readonly IDocumentMessageProducer _producer =
-            producer ?? throw new ArgumentNullException(nameof(producer));
+            log.Info("DocumentService initialized");
+        }
 
         // --- CRUD Operations ---
         public async Task<List<DocumentDto>> GetAllDocumentsAsync()
         {
+            log.Info("DocumentService.GetAllDocumentsAsync called");
             try
             {
                 List<Document> documents = await _documentRepo.GetAllAsync();
@@ -44,6 +52,7 @@ namespace BL.Services
 
         public async Task<DocumentDto?> GetDocumentByIdAsync(int id)
         {
+            log.Info($"DocumentService.GetDocumentByIdAsync called with ID={id}");
             try
             {
                 Document? document = await _documentRepo.GetByIdAsync(id);
@@ -57,6 +66,7 @@ namespace BL.Services
 
         public async Task<DocumentDto> AddDocumentAsync(Document document)
         {
+            log.Info($"DocumentService.AddDocumentAsync called for Document ID={document.Id}");
             try
             {
                 await _documentRepo.AddAsync(document);
@@ -68,6 +78,7 @@ namespace BL.Services
 
             try
             {
+                log.Info($"DocumentService: Publishing message for Document ID={document.Id}");
                 await _producer.PublishDocumentAsync(new DocumentMessageDto
                 {
                     DocumentId = document.Id,
@@ -75,19 +86,19 @@ namespace BL.Services
                     FileName = document.FileName,
                     UploadedAt = document.UploadedAt
                 });
+                log.Info($"DocumentService: Published message for Document ID={document.Id}");
             }
             catch (MessagingException ex)
             {
-                // mybe add a flag to retry publishing it again later
                 throw new ServiceException($"Document added but failed to publish message for Document ID {document.Id}.", ex);
             }
 
             return _mapper.Map<DocumentDto>(document);
         }
 
-
         public async Task<DocumentDto> UpdateDocumentAsync(Document document)
         {
+            log.Info($"DocumentService.UpdateDocumentAsync called for Document ID={document.Id}");
             try
             {
                 await _documentRepo.UpdateAsync(document);
@@ -101,11 +112,15 @@ namespace BL.Services
 
         public async Task<bool> DeleteDocumentAsync(int id)
         {
+            log.Info($"DocumentService.DeleteDocumentAsync called for ID={id}");
             try
             {
                 Document? existing = await _documentRepo.GetByIdAsync(id);
                 if (existing == null)
+                {
+                    log.Warn($"DocumentService.DeleteDocumentAsync: Document ID={id} not found");
                     return false;
+                }
 
                 await _documentRepo.DeleteAsync(id);
                 return true;
@@ -118,6 +133,7 @@ namespace BL.Services
 
         public async Task<List<DocumentDto>> SearchDocumentsAsync(string keyword)
         {
+            log.Info($"DocumentService.SearchDocumentsAsync called with keyword='{keyword}'");
             try
             {
                 List<Document> documents = await _documentRepo.SearchDocumentsAsync(keyword);
@@ -132,15 +148,16 @@ namespace BL.Services
         // --- Business Logic ---
         public async Task LogAccessAsync(int documentId, DateTime date)
         {
+            log.Info($"DocumentService.LogAccessAsync called for Document ID={documentId} Date={date:yyyy-MM-dd}");
             try
             {
                 List<AccessLog> logs = await _accessLogRepo.GetByDocumentIdAsync(documentId);
-                AccessLog? log = logs.FirstOrDefault(l => l.Date.Date == date.Date);
+                AccessLog? logEntity = logs.FirstOrDefault(l => l.Date.Date == date.Date);
 
-                if (log != null)
+                if (logEntity != null)
                 {
-                    log.Count++;
-                    await _accessLogRepo.UpdateAsync(log);
+                    logEntity.Count++;
+                    await _accessLogRepo.UpdateAsync(logEntity);
                 }
                 else
                 {
@@ -154,23 +171,23 @@ namespace BL.Services
             }
             catch (DataAccessException ex)
             {
-                throw new ServiceException($"Failed to log access for Document ID {documentId} on {date:yyyy-MM-dd}.",
-                    ex);
+                throw new ServiceException($"Failed to log access for Document ID {documentId} on {date:yyyy-MM-dd}.", ex);
             }
         }
 
         public async Task AddLogToDocumentAsync(int documentId, string action, string? details = null)
         {
+            log.Info($"DocumentService.AddLogToDocumentAsync called for Document ID={documentId} Action='{action}'");
             try
             {
-                DocumentLog log = new DocumentLog
+                DocumentLog logEntry = new DocumentLog
                 {
                     Id = documentId,
                     Action = action,
                     Details = details,
                     Timestamp = DateTime.UtcNow
                 };
-                await _documentLogRepo.AddAsync(log);
+                await _documentLogRepo.AddAsync(logEntry);
             }
             catch (DataAccessException ex)
             {
@@ -180,11 +197,15 @@ namespace BL.Services
 
         public async Task AddTagToDocumentAsync(int documentId, string tagName)
         {
+            log.Info($"DocumentService.AddTagToDocumentAsync called for Document ID={documentId} Tag='{tagName}'");
             try
             {
                 Document? document = await _documentRepo.GetByIdAsync(documentId);
                 if (document == null)
+                {
+                    log.Warn($"DocumentService.AddTagToDocumentAsync: Document ID={documentId} not found");
                     return;
+                }
 
                 if (!document.Tags.Any(t => t.Name.Equals(tagName, StringComparison.OrdinalIgnoreCase)))
                 {
@@ -200,11 +221,15 @@ namespace BL.Services
 
         public async Task RemoveTagFromDocumentAsync(int documentId, string tagName)
         {
+            log.Info($"DocumentService.RemoveTagFromDocumentAsync called for Document ID={documentId} Tag='{tagName}'");
             try
             {
                 Document? document = await _documentRepo.GetByIdAsync(documentId);
                 if (document == null)
+                {
+                    log.Warn($"DocumentService.RemoveTagFromDocumentAsync: Document ID={documentId} not found");
                     return;
+                }
 
                 Tag? tag = document.Tags.FirstOrDefault(t =>
                     t.Name.Equals(tagName, StringComparison.OrdinalIgnoreCase));

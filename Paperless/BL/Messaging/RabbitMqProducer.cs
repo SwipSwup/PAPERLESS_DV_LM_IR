@@ -4,12 +4,16 @@ using Core.DTOs;
 using Core.Exceptions;
 using Core.Messaging;
 using RabbitMQ.Client;
+using log4net;
+using System.Reflection;
 
 namespace BL.Messaging
 {
     public class RabbitMqProducer : IDocumentMessageProducer, IAsyncDisposable
     {
-         private readonly IConnection _connection;
+        private static readonly ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod()!.DeclaringType);
+
+        private readonly IConnection _connection;
         private readonly IChannel _channel;
         private const string QueueName = "documents";
 
@@ -17,15 +21,16 @@ namespace BL.Messaging
         {
             try
             {
+                log.Info("RabbitMqProducer: Initializing connection");
+
                 ConnectionFactory factory = new ConnectionFactory
                 {
-                    HostName = "rabbitmq", 
+                    HostName = "rabbitmq",
                     UserName = "admin",
                     Password = "admin",
                     Port = 5672
                 };
 
-                // async connect + channel creation
                 _connection = factory.CreateConnectionAsync().GetAwaiter().GetResult();
                 _channel = _connection.CreateChannelAsync().GetAwaiter().GetResult();
 
@@ -35,6 +40,8 @@ namespace BL.Messaging
                     exclusive: false,
                     autoDelete: false
                 ).GetAwaiter().GetResult();
+
+                log.Info("RabbitMqProducer: Connection and channel initialized");
             }
             catch (Exception ex)
             {
@@ -46,6 +53,7 @@ namespace BL.Messaging
         {
             try
             {
+                log.Info($"RabbitMqProducer: Publishing message for Document ID {message.DocumentId}");
                 string json = JsonSerializer.Serialize(message);
                 byte[] body = Encoding.UTF8.GetBytes(json);
 
@@ -54,6 +62,8 @@ namespace BL.Messaging
                     routingKey: QueueName,
                     body: body
                 );
+
+                log.Info($"RabbitMqProducer: Message published for Document ID {message.DocumentId}");
             }
             catch (Exception ex)
             {
@@ -65,8 +75,10 @@ namespace BL.Messaging
         {
             try
             {
+                log.Info("RabbitMqProducer: Disposing connection and channel");
                 await _channel.DisposeAsync();
                 await _connection.DisposeAsync();
+                log.Info("RabbitMqProducer: Disposed successfully");
             }
             catch (Exception ex)
             {
@@ -78,6 +90,7 @@ namespace BL.Messaging
         {
             try
             {
+                log.Info($"RabbitMqProducer: Publishing document message for Document ID {message.DocumentId}");
                 string json = JsonSerializer.Serialize(message);
                 byte[] body = Encoding.UTF8.GetBytes(json);
 
@@ -86,6 +99,8 @@ namespace BL.Messaging
                     routingKey: QueueName,
                     body: body
                 );
+
+                log.Info($"RabbitMqProducer: Document message published for Document ID {message.DocumentId}");
             }
             catch (Exception ex)
             {

@@ -3,19 +3,23 @@ using Core.DTOs;
 using Core.Exceptions;
 using Core.Models;
 using Core.Repositories.Interfaces;
+using log4net;
+using System.Reflection;
 
 namespace BL.Services
 {
     public class AccessLogService(IAccessLogRepository accessLogRepo, IMapper mapper)
     {
+        private static readonly ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod()!.DeclaringType);
+
         private readonly IAccessLogRepository _accessLogRepo =
             accessLogRepo ?? throw new ArgumentNullException(nameof(accessLogRepo));
 
         private readonly IMapper _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
 
-        // --- CRUD Operations ---
         public async Task<List<AccessLogDto>> GetAllAsync()
         {
+            log.Info("AccessLogService.GetAllAsync called");
             try
             {
                 List<AccessLog> logs = await _accessLogRepo.GetAllAsync();
@@ -29,10 +33,11 @@ namespace BL.Services
 
         public async Task<AccessLogDto?> GetByIdAsync(int id)
         {
+            log.Info($"AccessLogService.GetByIdAsync called with ID={id}");
             try
             {
-                AccessLog? log = await _accessLogRepo.GetByIdAsync(id);
-                return log == null ? null : _mapper.Map<AccessLogDto>(log);
+                AccessLog? logEntity = await _accessLogRepo.GetByIdAsync(id);
+                return logEntity == null ? null : _mapper.Map<AccessLogDto>(logEntity);
             }
             catch (DataAccessException ex)
             {
@@ -42,6 +47,7 @@ namespace BL.Services
 
         public async Task<List<AccessLogDto>> GetByDocumentIdAsync(int documentId)
         {
+            log.Info($"AccessLogService.GetByDocumentIdAsync called for Document ID={documentId}");
             try
             {
                 List<AccessLog> logs = await _accessLogRepo.GetByDocumentIdAsync(documentId);
@@ -53,12 +59,13 @@ namespace BL.Services
             }
         }
 
-        public async Task<AccessLogDto> AddAsync(AccessLog log)
+        public async Task<AccessLogDto> AddAsync(AccessLog accessLog)
         {
+            log.Info($"AccessLogService.AddAsync called for Document ID={accessLog.Id}");
             try
             {
-                await _accessLogRepo.AddAsync(log);
-                return _mapper.Map<AccessLogDto>(log);
+                await _accessLogRepo.AddAsync(accessLog);
+                return _mapper.Map<AccessLogDto>(accessLog);
             }
             catch (DataAccessException ex)
             {
@@ -66,25 +73,32 @@ namespace BL.Services
             }
         }
 
-        public async Task<AccessLogDto> UpdateAsync(AccessLog log)
+        public async Task<AccessLogDto> UpdateAsync(AccessLog accessLog)
         {
+            log.Info($"AccessLogService.UpdateAsync called for AccessLog ID={accessLog.Id}");
             try
             {
-                await _accessLogRepo.UpdateAsync(log);
-                return _mapper.Map<AccessLogDto>(log);
+                await _accessLogRepo.UpdateAsync(accessLog);
+                return _mapper.Map<AccessLogDto>(accessLog);
             }
             catch (DataAccessException ex)
             {
-                throw new ServiceException($"Failed to update AccessLog with ID {log.Id}.", ex);
+                throw new ServiceException($"Failed to update AccessLog with ID {accessLog.Id}.", ex);
             }
         }
 
+
         public async Task<bool> DeleteAsync(int id)
         {
+            log.Info($"AccessLogService.DeleteAsync called for ID={id}");
             try
             {
                 AccessLog? existing = await _accessLogRepo.GetByIdAsync(id);
-                if (existing == null) return false;
+                if (existing == null)
+                {
+                    log.Warn($"AccessLogService.DeleteAsync: AccessLog ID={id} not found");
+                    return false;
+                }
 
                 await _accessLogRepo.DeleteAsync(id);
                 return true;
@@ -95,19 +109,18 @@ namespace BL.Services
             }
         }
 
-        // --- Business Logic ---
-
         public async Task LogAccessAsync(int documentId, DateTime date)
         {
+            log.Info($"AccessLogService.LogAccessAsync called for Document ID={documentId} Date={date:yyyy-MM-dd}");
             try
             {
                 List<AccessLog> logs = await _accessLogRepo.GetByDocumentIdAsync(documentId);
-                AccessLog? log = logs.FirstOrDefault(l => l.Date.Date == date.Date);
+                AccessLog? logEntity = logs.FirstOrDefault(l => l.Date.Date == date.Date);
 
-                if (log != null)
+                if (logEntity != null)
                 {
-                    log.Count++;
-                    await _accessLogRepo.UpdateAsync(log);
+                    logEntity.Count++;
+                    await _accessLogRepo.UpdateAsync(logEntity);
                 }
                 else
                 {
@@ -121,8 +134,7 @@ namespace BL.Services
             }
             catch (DataAccessException ex)
             {
-                throw new ServiceException($"Failed to log access for Document ID {documentId} on {date:yyyy-MM-dd}.",
-                    ex);
+                throw new ServiceException($"Failed to log access for Document ID {documentId} on {date:yyyy-MM-dd}.", ex);
             }
         }
     }
