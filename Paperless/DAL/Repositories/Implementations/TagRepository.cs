@@ -4,40 +4,55 @@ using Core.Models;
 using Core.Repositories.Interfaces;
 using DAL.Models;
 using Microsoft.EntityFrameworkCore;
+using log4net;
+using System.Reflection;
 
-namespace DAL.Repositories.Implementations;
-
-public class TagRepository(PaperlessDBContext context, IMapper mapper) : RepositoryBase, ITagRepository
+namespace DAL.Repositories.Implementations
 {
-    private readonly PaperlessDBContext _context = context ?? throw new ArgumentNullException(nameof(context));
-    private readonly IMapper _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
+    public class TagRepository(PaperlessDBContext context, IMapper mapper) : RepositoryBase, ITagRepository
+    {
+        private static readonly ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod()!.DeclaringType);
 
-    public Task<List<Tag>> GetAllAsync() =>
-        ExecuteRepositoryActionAsync(async () =>
+        private readonly PaperlessDBContext _context = context ?? throw new ArgumentNullException(nameof(context));
+        private readonly IMapper _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
+
+        public Task<List<Tag>> GetAllAsync()
         {
-            List<TagEntity> entities = await _context.Tags.Include(t => t.Documents).ToListAsync();
-            return _mapper.Map<List<Tag>>(entities);
-        }, "Failed to retrieve all Tags.");
+            log.Info("TagRepository.GetAllAsync called");
+            return ExecuteRepositoryActionAsync(async () =>
+            {
+                List<TagEntity> entities = await _context.Tags.Include(t => t.Documents).ToListAsync();
+                return _mapper.Map<List<Tag>>(entities);
+            }, "Failed to retrieve all Tags.");
+        }
 
-    public Task<Tag?> GetByIdAsync(int id) =>
-        ExecuteRepositoryActionAsync(async () =>
+        public Task<Tag?> GetByIdAsync(int id)
+        {
+            log.Info($"TagRepository.GetByIdAsync called for ID={id}");
+            return ExecuteRepositoryActionAsync(async () =>
             {
                 TagEntity? entity = await _context.Tags.Include(t => t.Documents)
                     .FirstOrDefaultAsync(t => t.Id == id);
                 return _mapper.Map<Tag?>(entity);
             }, $"Failed to retrieve Tag with ID {id}.");
+        }
 
-    public Task AddAsync(Tag model) =>
-        ExecuteRepositoryActionAsync(async () =>
+        public Task AddAsync(Tag model)
         {
-            TagEntity? entity = _mapper.Map<TagEntity>(model);
-            await _context.Tags.AddAsync(entity);
-            await _context.SaveChangesAsync();
-            model.Id = entity.Id;
-        }, "Failed to add Tag.");
+            log.Info($"TagRepository.AddAsync called for Tag ID={model.Id}");
+            return ExecuteRepositoryActionAsync(async () =>
+            {
+                TagEntity? entity = _mapper.Map<TagEntity>(model);
+                await _context.Tags.AddAsync(entity);
+                await _context.SaveChangesAsync();
+                model.Id = entity.Id;
+            }, "Failed to add Tag.");
+        }
 
-    public Task UpdateAsync(Tag model) =>
-        ExecuteRepositoryActionAsync(async () =>
+        public Task UpdateAsync(Tag model)
+        {
+            log.Info($"TagRepository.UpdateAsync called for Tag ID={model.Id}");
+            return ExecuteRepositoryActionAsync(async () =>
             {
                 TagEntity? entity = await _context.Tags.FindAsync(model.Id);
                 if (entity == null)
@@ -46,9 +61,12 @@ public class TagRepository(PaperlessDBContext context, IMapper mapper) : Reposit
                 _mapper.Map(model, entity);
                 await _context.SaveChangesAsync();
             }, $"Failed to update Tag with ID {model.Id}.");
+        }
 
-    public Task DeleteAsync(int id) =>
-        ExecuteRepositoryActionAsync(async () =>
+        public Task DeleteAsync(int id)
+        {
+            log.Info($"TagRepository.DeleteAsync called for Tag ID={id}");
+            return ExecuteRepositoryActionAsync(async () =>
             {
                 TagEntity? entity = await _context.Tags.FindAsync(id);
                 if (entity == null)
@@ -57,13 +75,18 @@ public class TagRepository(PaperlessDBContext context, IMapper mapper) : Reposit
                 _context.Tags.Remove(entity);
                 await _context.SaveChangesAsync();
             }, $"Failed to delete Tag with ID {id}.");
+        }
 
-    public Task<List<Tag>> SearchTagsAsync(string keyword) =>
-        ExecuteRepositoryActionAsync(async () =>
+        public Task<List<Tag>> SearchTagsAsync(string keyword)
+        {
+            log.Info($"TagRepository.SearchTagsAsync called with keyword='{keyword}'");
+            return ExecuteRepositoryActionAsync(async () =>
             {
                 List<TagEntity> entities = await _context.Tags
                     .Where(t => t.Name.Contains(keyword))
                     .ToListAsync();
                 return _mapper.Map<List<Tag>>(entities);
             }, $"Failed to search Tags with keyword '{keyword}'.");
+        }
+    }
 }
