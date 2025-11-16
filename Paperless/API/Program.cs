@@ -8,6 +8,7 @@ using DAL;
 using DAL.Repositories.Implementations;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
+using Minio;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -55,6 +56,25 @@ builder.Services.AddScoped<IValidator<AccessLogDto>, AccessLogDtoValidator>();
 builder.Services.AddScoped<IValidator<DocumentLogDto>, DocumentLogDtoValidator>();
 builder.Services.AddScoped<IValidator<TagDto>, TagDtoValidator>();
 
+
+// --------------------
+// Configure MinIO
+// --------------------
+builder.Services.AddSingleton(sp =>
+{
+    var config = builder.Configuration.GetSection("Minio");
+    var minioClient = new MinioClient()
+        .WithEndpoint(config["Endpoint"])
+        .WithCredentials(config["AccessKey"], config["SecretKey"])
+        .Build(); // returns IMinioClient
+
+    var dbContext = sp.GetRequiredService<PaperlessDBContext>();
+    var bucketName = config["BucketName"] ?? "documents";
+
+    return new MinioDocumentRepository(dbContext, minioClient, bucketName);
+});
+
+
 // --------------------
 // Add Swagger
 // --------------------
@@ -65,7 +85,6 @@ builder.Services.AddSwaggerGen();
 // Add Controllers
 // --------------------
 builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
 
 // --------------------
 // Add CORS
@@ -75,14 +94,14 @@ builder.Services.AddCors(options =>
     options.AddDefaultPolicy(policy =>
     {
         policy.AllowAnyOrigin()
-            .AllowAnyHeader()
-            .AllowAnyMethod();
+              .AllowAnyHeader()
+              .AllowAnyMethod();
     });
 });
 
 builder.WebHost.ConfigureKestrel(options =>
 {
-    options.ListenAnyIP(8080); 
+    options.ListenAnyIP(8080);
     options.ListenAnyIP(8081);
 });
 
@@ -93,7 +112,7 @@ var app = builder.Build();
 // --------------------
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();             
+    app.UseSwagger();
     app.UseSwaggerUI(c =>
     {
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "My API V1");
@@ -101,12 +120,14 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-
 app.UseHttpsRedirection();
 app.UseCors();
-//app.UseAuthorization();
+// app.UseAuthorization();
 app.MapControllers();
 
+// --------------------
+// Health Check
+// --------------------
 app.MapGet("/health", () => Results.Ok("Healthy"));
 
 // --------------------

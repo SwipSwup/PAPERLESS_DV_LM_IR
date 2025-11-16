@@ -2,7 +2,7 @@
 services:
   api:
     build:
-      context: "D:\\FH\\WS25\\SWEN\\Paperless"
+      context: "C:\\FH\\WS25\\SWEN3\\PAPERLESS_DV_LM_IR\\Paperless"
       dockerfile: "API/Dockerfile"
       target: "base"
     command: []
@@ -14,13 +14,13 @@ services:
     image: "api:dev"
     ports: []
     volumes:
-    - "D:\\FH\\WS25\\SWEN\\Paperless\\API:/app:rw"
-    - "D:\\FH\\WS25\\SWEN\\Paperless:/src:rw"
-    - "C:\\Users\\david\\.nuget\\packages:/home/app/.nuget/packages"
+    - "C:\\FH\\WS25\\SWEN3\\PAPERLESS_DV_LM_IR\\Paperless\\API:/app:rw"
+    - "C:\\FH\\WS25\\SWEN3\\PAPERLESS_DV_LM_IR\\Paperless:/src:rw"
+    - "C:\\Users\\Luki\\.nuget\\packages:/home/app/.nuget/packages"
     working_dir: "/app"
   batchworker:
     build:
-      context: "D:\\FH\\WS25\\SWEN\\Paperless"
+      context: "C:\\FH\\WS25\\SWEN3\\PAPERLESS_DV_LM_IR\\Paperless"
       dockerfile: "BatchWorker/Dockerfile"
       target: "base"
     command: []
@@ -32,13 +32,13 @@ services:
     image: "batchworker:dev"
     ports: []
     volumes:
-    - "D:\\FH\\WS25\\SWEN\\Paperless\\BatchWorker:/app:rw"
-    - "D:\\FH\\WS25\\SWEN\\Paperless:/src:rw"
-    - "C:\\Users\\david\\.nuget\\packages:/home/app/.nuget/packages"
+    - "C:\\FH\\WS25\\SWEN3\\PAPERLESS_DV_LM_IR\\Paperless\\BatchWorker:/app:rw"
+    - "C:\\FH\\WS25\\SWEN3\\PAPERLESS_DV_LM_IR\\Paperless:/src:rw"
+    - "C:\\Users\\Luki\\.nuget\\packages:/root/.nuget/packages"
     working_dir: "/app"
   genaiworker:
     build:
-      context: "D:\\FH\\WS25\\SWEN\\Paperless"
+      context: "C:\\FH\\WS25\\SWEN3\\PAPERLESS_DV_LM_IR\\Paperless"
       dockerfile: "GenAIWorker/Dockerfile"
       target: "base"
     command: []
@@ -50,13 +50,13 @@ services:
     image: "genaiworker:dev"
     ports: []
     volumes:
-    - "D:\\FH\\WS25\\SWEN\\Paperless\\GenAIWorker:/app:rw"
-    - "D:\\FH\\WS25\\SWEN\\Paperless:/src:rw"
-    - "C:\\Users\\david\\.nuget\\packages:/home/app/.nuget/packages"
+    - "C:\\FH\\WS25\\SWEN3\\PAPERLESS_DV_LM_IR\\Paperless\\GenAIWorker:/app:rw"
+    - "C:\\FH\\WS25\\SWEN3\\PAPERLESS_DV_LM_IR\\Paperless:/src:rw"
+    - "C:\\Users\\Luki\\.nuget\\packages:/root/.nuget/packages"
     working_dir: "/app"
   indexingworker:
     build:
-      context: "D:\\FH\\WS25\\SWEN\\Paperless"
+      context: "C:\\FH\\WS25\\SWEN3\\PAPERLESS_DV_LM_IR\\Paperless"
       dockerfile: "IndexingWorker/Dockerfile"
       target: "base"
     command: []
@@ -68,13 +68,13 @@ services:
     image: "indexingworker:dev"
     ports: []
     volumes:
-    - "D:\\FH\\WS25\\SWEN\\Paperless\\IndexingWorker:/app:rw"
-    - "D:\\FH\\WS25\\SWEN\\Paperless:/src:rw"
-    - "C:\\Users\\david\\.nuget\\packages:/home/app/.nuget/packages"
+    - "C:\\FH\\WS25\\SWEN3\\PAPERLESS_DV_LM_IR\\Paperless\\IndexingWorker:/app:rw"
+    - "C:\\FH\\WS25\\SWEN3\\PAPERLESS_DV_LM_IR\\Paperless:/src:rw"
+    - "C:\\Users\\Luki\\.nuget\\packages:/root/.nuget/packages"
     working_dir: "/app"
   ocrworker:
     build:
-      context: "D:\\FH\\WS25\\SWEN\\Paperless"
+      context: "C:\\FH\\WS25\\SWEN3\\PAPERLESS_DV_LM_IR\\Paperless"
       dockerfile: "OcrWorker/Dockerfile"
       target: "base"
     command: []
@@ -86,13 +86,13 @@ services:
     image: "ocrworker:dev"
     ports: []
     volumes:
-    - "D:\\FH\\WS25\\SWEN\\Paperless\\OcrWorker:/app:rw"
-    - "D:\\FH\\WS25\\SWEN\\Paperless:/src:rw"
-    - "C:\\Users\\david\\.nuget\\packages:/home/app/.nuget/packages"
+    - "C:\\FH\\WS25\\SWEN3\\PAPERLESS_DV_LM_IR\\Paperless\\OcrWorker:/app:rw"
+    - "C:\\FH\\WS25\\SWEN3\\PAPERLESS_DV_LM_IR\\Paperless:/src:rw"
+    - "C:\\Users\\Luki\\.nuget\\packages:/root/.nuget/packages"
     working_dir: "/app"
   ui:
     build:
-      context: "D:\\FH\\WS25\\SWEN\\Paperless"
+      context: "C:\\FH\\WS25\\SWEN3\\PAPERLESS_DV_LM_IR\\Paperless"
       dockerfile: "UI/Dockerfile"
       target: "base"
     command: []
@@ -105,7 +105,7 @@ services:
     image: "ui:dev"
     ports: []
     volumes:
-    - "D:\\FH\\WS25\\SWEN\\Paperless\\UI:/app:rw"
-    - "D:\\FH\\WS25\\SWEN\\Paperless:/src:rw"
-    - "C:\\Users\\david\\.nuget\\packages:/root/.nuget/packages"
+    - "C:\\FH\\WS25\\SWEN3\\PAPERLESS_DV_LM_IR\\Paperless\\UI:/app:rw"
+    - "C:\\FH\\WS25\\SWEN3\\PAPERLESS_DV_LM_IR\\Paperless:/src:rw"
+    - "C:\\Users\\Luki\\.nuget\\packages:/root/.nuget/packages"
     working_dir: "/app"

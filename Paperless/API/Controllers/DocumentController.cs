@@ -1,10 +1,11 @@
 ﻿using BL.Services;
-using AutoMapper;
 using Core.DTOs;
-using Microsoft.AspNetCore.Mvc;
 using Core.Models;
+using DAL.Repositories.Implementations;
 using FluentValidation;
 using FluentValidation.Results;
+using Microsoft.AspNetCore.Mvc;
+using AutoMapper;
 using log4net;
 using System.Reflection;
 
@@ -12,24 +13,38 @@ namespace API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class DocumentController(DocumentService service, IMapper mapper, IValidator<DocumentDto> validator) : ControllerBase
+public class DocumentController : ControllerBase
 {
+    private readonly DocumentService service;
+    private readonly IMapper mapper;
+    private readonly IValidator<DocumentDto> validator;
+    private readonly MinioDocumentRepository minioRepo;
     private static readonly ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod()!.DeclaringType);
 
+    public DocumentController(
+        DocumentService service,
+        IMapper mapper,
+        IValidator<DocumentDto> validator,
+        MinioDocumentRepository minioRepo)
+    {
+        this.service = service;
+        this.mapper = mapper;
+        this.validator = validator;
+        this.minioRepo = minioRepo;
+    }
+
+    // -------------------- CRUD --------------------
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
-        log.Info("DocumentController: GetAll called");
-
         try
         {
-            List<DocumentDto> documents = await service.GetAllDocumentsAsync();
-            log.Info($"DocumentController: Returned {documents.Count} documents");
-            return Ok(mapper.Map<List<DocumentDto>>(documents));
+            var documents = await service.GetAllDocumentsAsync();
+            return Ok(documents);
         }
         catch (Exception ex)
         {
-            log.Error("DocumentController: Error in GetAll", ex);
+            log.Error("GetAll error", ex);
             return StatusCode(500, ex.Message);
         }
     }
@@ -37,23 +52,15 @@ public class DocumentController(DocumentService service, IMapper mapper, IValida
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(int id)
     {
-        log.Info($"DocumentController: GetById called with id={id}");
-
         try
         {
-            DocumentDto? document = await service.GetDocumentByIdAsync(id);
-            if (document == null)
-            {
-                log.Warn($"DocumentController: No document found with id={id}");
-                return NotFound();
-            }
-
-            log.Info($"DocumentController: Found document with id={id}");
-            return Ok(mapper.Map<DocumentDto>(document));
+            var document = await service.GetDocumentByIdAsync(id);
+            if (document == null) return NotFound();
+            return Ok(document);
         }
         catch (Exception ex)
         {
-            log.Error($"DocumentController: Error in GetById id={id}", ex);
+            log.Error($"GetById error id={id}", ex);
             return StatusCode(500, ex.Message);
         }
     }
@@ -61,25 +68,18 @@ public class DocumentController(DocumentService service, IMapper mapper, IValida
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] DocumentDto dto)
     {
-        log.Info($"DocumentController: Create called for title={dto.FileName}");
-
         ValidationResult? validationResult = await validator.ValidateAsync(dto);
-        if (!validationResult.IsValid)
-        {
-            log.Warn($"DocumentController: Validation failed for title={dto.FileName}");
-            return BadRequest(validationResult.Errors);
-        }
+        if (!validationResult.IsValid) return BadRequest(validationResult.Errors);
 
         try
         {
-            Document? model = mapper.Map<Document>(dto);
-            DocumentDto created = await service.AddDocumentAsync(model);
-            log.Info($"DocumentController: Document created with id={created.Id}");
-            return CreatedAtAction(nameof(GetById), new { id = created.Id }, mapper.Map<DocumentDto>(created));
+            var model = mapper.Map<Document>(dto);
+            var created = await service.AddDocumentAsync(model);
+            return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
         }
         catch (Exception ex)
         {
-            log.Error("DocumentController: Error in Create", ex);
+            log.Error("Create error", ex);
             return StatusCode(500, ex.Message);
         }
     }
@@ -87,49 +87,39 @@ public class DocumentController(DocumentService service, IMapper mapper, IValida
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(int id, [FromBody] DocumentDto dto)
     {
-        log.Info($"DocumentController: Update called for id={id}");
-
-        if (id != dto.Id)
-        {
-            log.Warn("DocumentController: ID mismatch in Update");
-            return BadRequest("ID mismatch");
-        }
+        if (id != dto.Id) return BadRequest("ID mismatch");
 
         ValidationResult? validationResult = await validator.ValidateAsync(dto);
-        if (!validationResult.IsValid)
-        {
-            log.Warn($"DocumentController: Validation failed in Update for id={id}");
-            return BadRequest(validationResult.Errors);
-        }
+        if (!validationResult.IsValid) return BadRequest(validationResult.Errors);
 
         try
         {
-            Document? model = mapper.Map<Document>(dto);
+            var model = mapper.Map<Document>(dto);
             await service.UpdateDocumentAsync(model);
-            log.Info($"DocumentController: Document updated with id={id}");
             return NoContent();
         }
         catch (Exception ex)
         {
-            log.Error($"DocumentController: Error in Update id={id}", ex);
+            log.Error($"Update error id={id}", ex);
             return StatusCode(500, ex.Message);
         }
     }
 
     [HttpDelete("{id}")]
-    public async Task<IActionResult> Delete(int id)
+    public async Task<IActionResult> DeleteDocument(int id)
     {
-        log.Info($"DocumentController: Delete called for id={id}");
-
         try
         {
-            await service.DeleteDocumentAsync(id);
-            log.Info($"DocumentController: Document deleted with id={id}");
+            var documentDto = await service.GetDocumentByIdAsync(id);
+            if (documentDto == null) return NotFound();
+
+            var documentModel = mapper.Map<Document>(documentDto);
+            await minioRepo.DeleteAsync(documentModel);
             return NoContent();
         }
         catch (Exception ex)
         {
-            log.Error($"DocumentController: Error in Delete id={id}", ex);
+            log.Error($"DeleteDocument error id={id}", ex);
             return StatusCode(500, ex.Message);
         }
     }
@@ -137,18 +127,50 @@ public class DocumentController(DocumentService service, IMapper mapper, IValida
     [HttpGet("search")]
     public async Task<IActionResult> Search([FromQuery] string keyword)
     {
-        log.Info($"DocumentController: Search called with keyword={keyword}");
-
         try
         {
-            List<DocumentDto> documents = await service.SearchDocumentsAsync(keyword);
-            log.Info($"DocumentController: Search returned {documents.Count} documents");
-            return Ok(mapper.Map<List<DocumentDto>>(documents));
+            var documents = await service.SearchDocumentsAsync(keyword);
+            return Ok(documents);
         }
         catch (Exception ex)
         {
-            log.Error($"DocumentController: Error in Search keyword={keyword}", ex);
+            log.Error($"Search error keyword={keyword}", ex);
             return StatusCode(500, ex.Message);
         }
+    }
+
+    // -------------------- MinIO Upload --------------------
+    [HttpPost("upload")]
+    public async Task<IActionResult> Upload([FromForm] IFormFile file, [FromQuery] int userId)
+    {
+        if (file == null || file.Length == 0) return BadRequest("No file uploaded.");
+
+        var tempPath = Path.GetTempFileName();
+        await using (var stream = System.IO.File.Create(tempPath))
+        {
+            await file.CopyToAsync(stream);
+        }
+
+        var uploadedDocument = await minioRepo.UploadAsync(tempPath, userId);
+        var dto = mapper.Map<DocumentDto>(uploadedDocument);
+        return Ok(dto);
+    }
+
+    // -------------------- MinIO Download --------------------
+    [HttpGet("download/{id}")]
+    public async Task<IActionResult> Download(int id)
+    {
+        var documentDto = await service.GetDocumentByIdAsync(id);
+        if (documentDto == null) return NotFound();
+
+        var documentModel = mapper.Map<Document>(documentDto);
+        var tempPath = Path.Combine(Path.GetTempPath(), documentDto.FileName);
+
+        await minioRepo.DownloadAsync(documentModel, tempPath);
+
+        var fileBytes = await System.IO.File.ReadAllBytesAsync(tempPath);
+        System.IO.File.Delete(tempPath);
+
+        return File(fileBytes, "application/octet-stream", documentDto.FileName);
     }
 }
