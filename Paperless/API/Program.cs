@@ -9,7 +9,7 @@ using DAL.Repositories.Implementations;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 
-var builder = WebApplication.CreateBuilder(args);
+WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 // --------------------
 // Configure Database

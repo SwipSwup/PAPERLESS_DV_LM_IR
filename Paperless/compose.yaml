@@ -24,29 +24,29 @@
     environment:
       - DOTNET_ENVIRONMENT=Production
 
-  indexingworker:
-    container_name: paperless-indexingworker
-    build:
-      context: .
-      dockerfile: IndexingWorker/Dockerfile
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-#      elasticsearch:
+#  indexingworker:
+#    container_name: paperless-indexingworker
+#    build:
+#      context: .
+#      dockerfile: IndexingWorker/Dockerfile
+#    depends_on:
+#      rabbitmq:
 #        condition: service_healthy
-    environment:
-      - DOTNET_ENVIRONMENT=Production
+##      elasticsearch:
+##        condition: service_healthy
+#    environment:
+#      - DOTNET_ENVIRONMENT=Production
 
-  batchworker:
-    container_name: paperless-batchworker
-    build:
-      context: .
-      dockerfile: BatchWorker/Dockerfile
-    depends_on:
-      postgres:
-        condition: service_healthy
-    environment:
-      - DOTNET_ENVIRONMENT=Production
+#  batchworker:
+#    container_name: paperless-batchworker
+#    build:
+#      context: .
+#      dockerfile: BatchWorker/Dockerfile
+#    depends_on:
+#      postgres:
+#        condition: service_healthy
+#    environment:
+#      - DOTNET_ENVIRONMENT=Production
 
   # --- UI ---
   ui:

@@ -18,24 +18,6 @@ services:
     - "D:\\FH\\WS25\\SWEN\\Paperless:/src:rw"
     - "C:\\Users\\david\\.nuget\\packages:/home/app/.nuget/packages"
     working_dir: "/app"
-  batchworker:
-    build:
-      context: "D:\\FH\\WS25\\SWEN\\Paperless"
-      dockerfile: "BatchWorker/Dockerfile"
-      target: "base"
-    command: []
-    entrypoint:
-    - "dotnet"
-    - "/app/bin/Debug/net9.0/BatchWorker.dll"
-    environment:
-      DOTNET_USE_POLLING_FILE_WATCHER: "true"
-    image: "batchworker:dev"
-    ports: []
-    volumes:
-    - "D:\\FH\\WS25\\SWEN\\Paperless\\BatchWorker:/app:rw"
-    - "D:\\FH\\WS25\\SWEN\\Paperless:/src:rw"
-    - "C:\\Users\\david\\.nuget\\packages:/home/app/.nuget/packages"
-    working_dir: "/app"
   genaiworker:
     build:
       context: "D:\\FH\\WS25\\SWEN\\Paperless"
@@ -51,24 +33,6 @@ services:
     ports: []
     volumes:
     - "D:\\FH\\WS25\\SWEN\\Paperless\\GenAIWorker:/app:rw"
-    - "D:\\FH\\WS25\\SWEN\\Paperless:/src:rw"
-    - "C:\\Users\\david\\.nuget\\packages:/home/app/.nuget/packages"
-    working_dir: "/app"
-  indexingworker:
-    build:
-      context: "D:\\FH\\WS25\\SWEN\\Paperless"
-      dockerfile: "IndexingWorker/Dockerfile"
-      target: "base"
-    command: []
-    entrypoint:
-    - "dotnet"
-    - "/app/bin/Debug/net9.0/IndexingWorker.dll"
-    environment:
-      DOTNET_USE_POLLING_FILE_WATCHER: "true"
-    image: "indexingworker:dev"
-    ports: []
-    volumes:
-    - "D:\\FH\\WS25\\SWEN\\Paperless\\IndexingWorker:/app:rw"
     - "D:\\FH\\WS25\\SWEN\\Paperless:/src:rw"
     - "C:\\Users\\david\\.nuget\\packages:/home/app/.nuget/packages"
     working_dir: "/app"

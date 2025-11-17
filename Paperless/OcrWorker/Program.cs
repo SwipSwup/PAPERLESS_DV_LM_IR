@@ -1,7 +1,24 @@
 using OcrWorker;
+using OcrWorker.Config;
+using OcrWorker.Messaging;
+using OcrWorker.Services.Pdf;
+using OcrWorker.Storage;
+using OcrWorker.Utils;
 
-var builder = Host.CreateApplicationBuilder(args);
+HostApplicationBuilder builder = Host.CreateApplicationBuilder(args);
+
+// Config
+builder.Services.Configure<RabbitMqSettings>(builder.Configuration.GetSection("RabbitMq"));
+builder.Services.Configure<MinioSettings>(builder.Configuration.GetSection("Minio"));
+builder.Services.Configure<OcrSettings>(builder.Configuration.GetSection("Ocr"));
+
+builder.Services.AddScoped<IMessageConsumer, MessageConsumer>();
+builder.Services.AddScoped<IPdfConverter, DynamicPdfConverter>();
+builder.Services.AddScoped<IStorageWrapper, StorageWrapper>();
+
+builder.Services.AddScoped<ITempFileUtility, TempFileUtility>();
+
 builder.Services.AddHostedService<Worker>();
 
-var host = builder.Build();
+IHost host = builder.Build();
 host.Run();
