@@ -26,7 +26,7 @@ services:
     command: []
     entrypoint:
     - "dotnet"
-    - "/app/bin/Debug/net9.0/GenAIWorker.dll"
+    - "/app/bin/Debug/net8.0/GenAIWorker.dll"
     environment:
       DOTNET_USE_POLLING_FILE_WATCHER: "true"
     image: "genaiworker:dev"
@@ -44,7 +44,7 @@ services:
     command: []
     entrypoint:
     - "dotnet"
-    - "/app/bin/Debug/net9.0/OcrWorker.dll"
+    - "/app/bin/Debug/net8.0/OcrWorker.dll"
     environment:
       DOTNET_USE_POLLING_FILE_WATCHER: "true"
     image: "ocrworker:dev"

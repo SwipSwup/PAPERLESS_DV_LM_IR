@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using Core.Configuration;
 using System.Text.Json;
 using Core.DTOs;
 using Core.Exceptions;
@@ -15,27 +16,28 @@ namespace BL.Messaging
 
         private readonly IConnection _connection;
         private readonly IChannel _channel;
-        private const string QueueName = "documents";
+        private readonly string _queueName;
 
-        public RabbitMqProducer()
+        public RabbitMqProducer(RabbitMqSettings settings)
         {
             try
             {
-                log.Info("RabbitMqProducer: Initializing connection");
+                log.Info($"RabbitMqProducer: Initializing connection to {settings.Host}:{settings.Port}");
+                _queueName = settings.QueueName;
 
                 ConnectionFactory factory = new ConnectionFactory
                 {
-                    HostName = "rabbitmq",
-                    UserName = "admin",
-                    Password = "admin",
-                    Port = 5672
+                    HostName = settings.Host,
+                    UserName = settings.User,
+                    Password = settings.Password,
+                    Port = settings.Port
                 };
 
                 _connection = factory.CreateConnectionAsync().GetAwaiter().GetResult();
                 _channel = _connection.CreateChannelAsync().GetAwaiter().GetResult();
 
                 _channel.QueueDeclareAsync(
-                    queue: QueueName,
+                    queue: _queueName,
                     durable: true,
                     exclusive: false,
                     autoDelete: false
@@ -59,7 +61,7 @@ namespace BL.Messaging
 
                 await _channel.BasicPublishAsync(
                     exchange: "",
-                    routingKey: QueueName,
+                    routingKey: _queueName,
                     body: body
                 );
 
@@ -96,7 +98,7 @@ namespace BL.Messaging
 
                 await _channel.BasicPublishAsync(
                     exchange: "",
-                    routingKey: QueueName,
+                    routingKey: _queueName,
                     body: body
                 );
 

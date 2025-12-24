@@ -1,15 +1,24 @@
 using API.Validators;
 using BL.Messaging;
 using BL.Services;
+using Core.Configuration;
 using Core.DTOs;
 using Core.Messaging;
 using Core.Repositories.Interfaces;
 using DAL;
 using DAL.Repositories.Implementations;
 using FluentValidation;
+using Microsoft.Extensions.Options;
 using Microsoft.EntityFrameworkCore;
+using Core.Interfaces;
+using DAL.Services;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
+
+// --------------------
+// Configure Logging
+// --------------------
+log4net.Config.XmlConfigurator.Configure(new FileInfo("log4net.config"));
 
 // --------------------
 // Configure Database
@@ -36,7 +45,16 @@ builder.Services.AddScoped<AccessLogService>();
 // --------------------
 // Register Messager
 // --------------------
+// --------------------
+// Register Messager & Storage
+// --------------------
+builder.Services.Configure<RabbitMqSettings>(builder.Configuration.GetSection("RabbitMq"));
+builder.Services.AddSingleton(sp => sp.GetRequiredService<IOptions<RabbitMqSettings>>().Value);
 builder.Services.AddScoped<IDocumentMessageProducer, RabbitMqProducer>();
+
+builder.Services.Configure<MinioSettings>(builder.Configuration.GetSection("Minio"));
+builder.Services.AddSingleton(sp => sp.GetRequiredService<IOptions<MinioSettings>>().Value);
+builder.Services.AddScoped<IStorageService, DAL.Services.MinioStorageService>();
 
 // --------------------
 // Register AutoMapper
@@ -91,6 +109,11 @@ var app = builder.Build();
 // --------------------
 // Configure Middleware
 // --------------------
+// --------------------
+// Configure Middleware
+// --------------------
+app.UseMiddleware<API.Middleware.ExceptionHandlingMiddleware>();
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();             

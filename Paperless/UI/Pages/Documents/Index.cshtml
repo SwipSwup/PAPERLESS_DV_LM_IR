@@ -71,55 +71,12 @@
 let currentView = 'grid';
 let allDocuments = [];
 
-// Hardcoded example documents for testing
-const exampleDocuments = [
-    {
-        id: 1,
-        fileName: "Contract_2024.pdf",
-        uploadedAt: "2024-01-15T10:30:00Z",
-        summary: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
-        tags: ["contract", "legal", "2024"]
-    },
-    {
-        id: 2,
-        fileName: "Invoice_12345.pdf",
-        uploadedAt: "2024-01-14T14:20:00Z",
-        summary: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
-        tags: ["invoice", "billing", "cloud"]
-    },
-    {
-        id: 3,
-        fileName: "Meeting_Notes_Jan15.docx",
-        uploadedAt: "2024-01-13T16:45:00Z",
-        summary: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
-        tags: ["meeting", "notes", "planning"]
-    },
-    {
-        id: 4,
-        fileName: "Receipt_Office_Supplies.pdf",
-        uploadedAt: "2024-01-12T09:15:00Z",
-        summary: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
-        tags: ["receipt", "expenses", "office"]
-    },
-    {
-        id: 5,
-        fileName: "Report_Q4_2023.pdf",
-        uploadedAt: "2024-01-11T11:30:00Z",
-        summary: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
-        tags: ["report", "quarterly", "finance"]
-    },
-    {
-        id: 6,
-        fileName: "Employee_Handbook_2024.pdf",
-        uploadedAt: "2024-01-10T08:45:00Z",
-        summary: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
-        tags: ["handbook", "hr", "policies"]
-    }
-];
-
-function loadDocuments() {
+async function loadDocuments() {
     try {
-        allDocuments = exampleDocuments;
+        const response = await fetch('http://localhost:8085/api/document');
+        if (!response.ok) throw new Error('Failed to fetch documents');
+        
+        allDocuments = await response.json();
         
         // Check if search parameter in the URL
         const urlParams = new URLSearchParams(window.location.search);
@@ -141,13 +98,18 @@ function loadDocuments() {
         }
     } catch (error) {
         console.error('Error loading documents:', error);
-        document.getElementById('documentsCount').textContent = 'Error loading documents';
+        document.getElementById('documentsCount').textContent = 'Error loading documents (Backend offline?)';
     }
 }
 
 function renderDocuments(documents) {
     const grid = document.getElementById('documentsGrid');
     
+    if (documents.length === 0) {
+        grid.innerHTML = '<div class="col-12 text-center text-muted">No documents found.</div>';
+        return;
+    }
+
     if (currentView === 'grid') {
         grid.className = 'documents-grid';
         grid.innerHTML = documents.map(doc => `
@@ -171,14 +133,8 @@ function renderDocuments(documents) {
                 <div class="document-actions">
                     <div class="document-date">${new Date(doc.uploadedAt).toLocaleDateString()}</div>
                     <div class="document-action-buttons">
-                        <button class="action-btn" onclick="editDocument(${doc.id})" title="Edit">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button class="action-btn" onclick="viewDocument(${doc.id})" title="View">
+                        <button class="action-btn" onclick="event.stopPropagation(); viewDocument(${doc.id})" title="View">
                             <i class="fas fa-eye"></i>
-                        </button>
-                        <button class="action-btn" onclick="downloadDocument(${doc.id})" title="Download">
-                            <i class="fas fa-download"></i>
                         </button>
                     </div>
                 </div>
@@ -202,14 +158,8 @@ function renderDocuments(documents) {
                 <div class="document-list-actions">
                     <div class="document-list-date">${new Date(doc.uploadedAt).toLocaleDateString()}</div>
                     <div class="document-action-buttons">
-                        <button class="action-btn" onclick="editDocument(${doc.id})" title="Edit">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button class="action-btn" onclick="viewDocument(${doc.id})" title="View">
+                        <button class="action-btn" onclick="event.stopPropagation(); viewDocument(${doc.id})" title="View">
                             <i class="fas fa-eye"></i>
-                        </button>
-                        <button class="action-btn" onclick="downloadDocument(${doc.id})" title="Download">
-                            <i class="fas fa-download"></i>
                         </button>
                     </div>
                 </div>
@@ -222,16 +172,6 @@ function viewDocument(id) {
     window.location.href = `/Documents/Detail?id=${id}`;
 }
 
-function editDocument(id) {
-    // Implement edit functionality
-    console.log('Edit document:', id);
-}
-
-function downloadDocument(id) {
-    // Implement download functionality
-    console.log('Download document:', id);
-}
-
 // View toggle functionality
 document.querySelectorAll('.view-btn').forEach(btn => {
     btn.addEventListener('click', function() {
@@ -240,30 +180,6 @@ document.querySelectorAll('.view-btn').forEach(btn => {
         currentView = this.dataset.view;
         renderDocuments(allDocuments);
     });
-});
-
-// Global search functionality
-document.getElementById('globalSearch').addEventListener('input', function(e) {
-    const searchTerm = e.target.value.toLowerCase();
-    const filteredDocs = allDocuments.filter(doc => 
-        doc.fileName.toLowerCase().includes(searchTerm) ||
-        (doc.summary && doc.summary.toLowerCase().includes(searchTerm))
-    );
-    renderDocuments(filteredDocs);
-});
-
-// Handle Enter key press in global search
-document.getElementById('globalSearch').addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') {
-        const searchTerm = this.value.trim();
-        if (searchTerm) {
-            // Update URL with search parameter and reload
-            window.location.href = `/Documents?search=${encodeURIComponent(searchTerm)}`;
-        } else {
-            // If no sarch term, go to Documents page without search
-            window.location.href = '/Documents';
-        }
-    }
 });
 
 // Upload modal functionality
@@ -277,7 +193,7 @@ function closeUploadModal() {
 }
 
 // Upload form submission
-document.getElementById('uploadForm').addEventListener('submit', function(e) {
+document.getElementById('uploadForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     
     const fileInput = document.getElementById('fileInput');
@@ -290,27 +206,43 @@ document.getElementById('uploadForm').addEventListener('submit', function(e) {
         return;
     }
     
-    // Create new document object
-    const newDocument = {
-        id: allDocuments.length + 1,
-        fileName: fileInput.files[0].name,
-        uploadedAt: new Date().toISOString(),
-        summary: summaryInput.value || 'No summary provided',
-        tags: tagsInput.value ? tagsInput.value.split(',').map(tag => tag.trim()) : []
-    };
+    const formData = new FormData();
+    formData.append('File', fileInput.files[0]);
+    if (titleInput.value) formData.append('Title', titleInput.value);
+    // Note: API maps multiple tags from DocumentUploadDto.Tags.
+    // We need to append them as 'Tags' multiple times or handle comma split here depending on how FromForm binds.
+    // ASP.NET Core default binder handles 'Tags' property if we send multiple keys or indexed.
+    // Let's split commas and append multiple "Tags" entries.
+    if (tagsInput.value) {
+        const tags = tagsInput.value.split(',');
+        tags.forEach(tag => formData.append('Tags', tag.trim()));
+    }
     
-    // Add to documents array
-    allDocuments.unshift(newDocument);
+    // Summary is NOT in DocumentUploadDto currently! 
+    // Wait, the DTO has: File, Title, Category, Tags. No Summary.
+    // The user will see summary generated by GenAI later.
+    // So we assume logic: Upload -> OCR -> GenAI Summary.
+    // We shouldn't send summary manually unless we add it to DTO.
+    // I'll skip summary for now as per DTO.
     
-    // Update display
-    document.getElementById('documentsCount').textContent = `${allDocuments.length} documents`;
-    renderDocuments(allDocuments);
-    
-    // Close modal and reset form
-    closeUploadModal();
-    
-    // Show success message
-    alert('Document uploaded successfully! (Note: This is a demo - no actual file was uploaded)');
+    try {
+        const response = await fetch('http://localhost:8085/api/document', {
+            method: 'POST',
+            body: formData
+        });
+
+        if (response.ok) {
+            alert('Document uploaded successfully!');
+            closeUploadModal();
+            loadDocuments(); // Reload list
+        } else {
+            const err = await response.text();
+            alert('Upload failed: ' + err);
+        }
+    } catch (error) {
+        console.error('Upload error:', error);
+        alert('Upload failed: ' + error.message);
+    }
 });
 
 // Close modal when clicking outside

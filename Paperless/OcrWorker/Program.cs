@@ -1,7 +1,11 @@
 using OcrWorker;
 using OcrWorker.Config;
+using Core.Configuration;
 using OcrWorker.Messaging;
 using OcrWorker.Services.Pdf;
+using OcrWorker.Services.Ocr;
+using OcrWorker.Services.Tesseract;
+using PaperlessServices.OcrWorker.Ocr;
 using OcrWorker.Storage;
 using OcrWorker.Utils;
 
@@ -15,6 +19,8 @@ builder.Services.Configure<OcrSettings>(builder.Configuration.GetSection("Ocr"))
 builder.Services.AddScoped<IMessageConsumer, MessageConsumer>();
 builder.Services.AddScoped<IPdfConverter, DynamicPdfConverter>();
 builder.Services.AddScoped<IStorageWrapper, StorageWrapper>();
+builder.Services.AddScoped<ITesseractCliRunner, TesseractCliRunner>();
+builder.Services.AddScoped<IOcrService, OcrService>();
 
 builder.Services.AddScoped<ITempFileUtility, TempFileUtility>();
 

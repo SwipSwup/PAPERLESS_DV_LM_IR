@@ -2,6 +2,7 @@
 {
     public interface ITesseractCliRunner
     {
-        
+        Task<string> RunOcrAsync(string inputPdfPath, CancellationToken cancellationToken);
     }
+
 }

@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using OcrWorker.Config;
+using Core.Configuration;
 using Core.DTOs;
 using Minio;
 using Minio.DataModel.Args;
@@ -49,11 +49,11 @@ public class StorageWrapper : IStorageWrapper
 
             _logger.LogInformation(
                 "Downloading '{object}' from bucket '{bucket}' into '{path}'",
-                objectName, _settings.Bucket, tempFile
+                objectName, _settings.BucketName, tempFile
             );
 
             GetObjectArgs? args = new GetObjectArgs()
-                .WithBucket(_settings.Bucket)
+                .WithBucket(_settings.BucketName)
                 .WithObject(objectName)
                 .WithCallbackStream(async (stream, token) =>
                 {
@@ -69,7 +69,7 @@ public class StorageWrapper : IStorageWrapper
         }
         catch (ObjectNotFoundException)
         {
-            _logger.LogError("File '{file}' not found in bucket '{bucket}'", objectName, _settings.Bucket);
+            _logger.LogError("File '{file}' not found in bucket '{bucket}'", objectName, _settings.BucketName);
             throw;
         }
         catch (MinioException ex)
@@ -80,6 +80,47 @@ public class StorageWrapper : IStorageWrapper
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unexpected error while fetching '{file}'", objectName);
+            throw;
+        }
+    }
+
+    public async Task UploadTextAsync(DocumentMessageDto message, string textContent, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(message.FileName))
+            throw new InvalidOperationException("Document message does not contain a FileName.");
+
+        string objectName = Path.ChangeExtension(message.FileName, ".txt");
+
+        try
+        {
+            //await EnsureBucketExistsAsync(ct);
+
+            _logger.LogInformation(
+                "Uploading OCR text for '{object}' to bucket '{bucket}'",
+                objectName, _settings.BucketName
+            );
+
+            using MemoryStream stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(textContent));
+            
+            PutObjectArgs args = new PutObjectArgs()
+                .WithBucket(_settings.BucketName)
+                .WithObject(objectName)
+                .WithStreamData(stream)
+                .WithObjectSize(stream.Length)
+                .WithContentType("text/plain");
+
+            await _client.PutObjectAsync(args, ct);
+
+            _logger.LogInformation("MinIO upload successful: {object}", objectName);
+        }
+        catch (MinioException ex)
+        {
+            _logger.LogError(ex, "MinIO error while uploading '{file}'", objectName);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error while uploading '{file}'", objectName);
             throw;
         }
     }

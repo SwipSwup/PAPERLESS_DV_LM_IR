@@ -1,7 +1,6 @@
-﻿namespace OcrWorker.Services.Ocr
+﻿namespace OcrWorker.Services.Ocr;
+
+public interface IOcrService
 {
-    public interface IOcrService
-    {
-        
-    }
+    Task<string> ExtractTextFromPdfAsync(string pdfPath, CancellationToken ct);
 }
