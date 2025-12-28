@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
-namespace UI.Pages.Documents
+namespace UI.Pages
 {
-    public class DocumentsModel : PageModel
+    public class DetailsModel : PageModel
     {
         public void OnGet()
         {

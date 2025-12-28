@@ -14,6 +14,9 @@ namespace DAL.Models
         [MaxLength(100)]
         public string Name { get; set; } = string.Empty;
 
+        [MaxLength(20)]
+        public string? Color { get; set; }
+
         public ICollection<DocumentEntity> Documents { get; set; } = new List<DocumentEntity>();
     }
 }

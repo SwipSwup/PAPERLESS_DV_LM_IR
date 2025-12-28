@@ -34,14 +34,14 @@ public class StorageWrapper : IStorageWrapper
 
     public async Task<string> DownloadPdfAsync(DocumentMessageDto message, CancellationToken ct = default)
     {
-        if (string.IsNullOrWhiteSpace(message.FileName))
-            throw new InvalidOperationException("Document message does not contain a FileName.");
+        if (string.IsNullOrWhiteSpace(message.FilePath))
+            throw new InvalidOperationException("Document message does not contain a FilePath.");
 
-        string objectName = message.FileName;
+        string objectName = message.FilePath;
 
         // temp folder for this document
         string tempDir = _tmpUtility.CreateTempDirectory("minio");
-        string tempFile = _tmpUtility.CreateTempFile(tempDir, objectName);
+        string tempFile = _tmpUtility.CreateTempFile(tempDir, Path.GetExtension(objectName).TrimStart('.'));
         
         try
         {
@@ -86,10 +86,10 @@ public class StorageWrapper : IStorageWrapper
 
     public async Task UploadTextAsync(DocumentMessageDto message, string textContent, CancellationToken ct = default)
     {
-        if (string.IsNullOrWhiteSpace(message.FileName))
-            throw new InvalidOperationException("Document message does not contain a FileName.");
+        if (string.IsNullOrWhiteSpace(message.FilePath))
+            throw new InvalidOperationException("Document message does not contain a FilePath.");
 
-        string objectName = Path.ChangeExtension(message.FileName, ".txt");
+        string objectName = Path.ChangeExtension(message.FilePath, ".txt");
 
         try
         {

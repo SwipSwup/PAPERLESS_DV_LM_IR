@@ -3,318 +3,248 @@
 @{
     ViewData["Title"] = "Dashboard";
 }
-<div class="dashboard-content">
-    <h1 class="dashboard-title">Dashboard</h1>
-    
-    <!-- Statistics Cards -->
-    <div class="stats-grid">
-        <div class="stat-card success">
-            <div class="stat-title">Total Documents</div>
-            <div class="stat-value" id="totalDocuments">-</div>
-        </div>
-        <div class="stat-card info">
-            <div class="stat-title">Total Tags</div>
-            <div class="stat-value" id="totalTags">-</div>
-        </div>
-        <div class="stat-card warning">
-            <div class="stat-title">Recent Uploads</div>
-            <div class="stat-value" id="recentUploads">-</div>
-        </div>
-        <div class="stat-card danger">
-            <div class="stat-title">Access Logs</div>
-            <div class="stat-value" id="accessLogs">-</div>
+
+<div class="animate-fade-in">
+    <!-- Hero / Drag Drop Zone -->
+    <div class="mb-4">
+        <div id="dropZone" class="card d-flex flex-col align-center justify-center text-center" style="height: 300px; border: 2px dashed var(--border-color); background: radial-gradient(circle at center, rgba(245, 158, 11, 0.05), transparent 70%); cursor: pointer;">
+            <i class="fas fa-cloud-upload-alt mb-2" style="font-size: 3rem; color: var(--accent-primary);"></i>
+            <h2 class="mb-2">Drag & Drop to Upload</h2>
+            <p class="text-muted mb-4">or click to browse your files</p>
+            <button class="btn btn-primary" onclick="event.stopPropagation(); document.getElementById('fileInput').click()">Browse Files</button>
+            <input type="file" id="fileInput" hidden multiple accept=".pdf,.png,.jpg,.jpeg">
         </div>
     </div>
 
-    <!-- Quick Actions -->
-    <div class="quick-actions">
-        <h2 class="section-title">Quick Actions</h2>
-        <div class="action-buttons">
-            <a href="/Documents" class="action-button">
-                <i class="fas fa-file-alt"></i>
-                <span>View All Documents</span>
-            </a>
-            <button class="action-button" onclick="openUploadModal()">
-                <i class="fas fa-upload"></i>
-                <span>Upload Document</span>
+    <!-- Recent Documents -->
+    <div class="d-flex align-center justify-between mb-4">
+        <h3>Recent Documents</h3>
+    </div>
+    <div id="recentDocsGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem;">
+        <!-- Grid Items -->
+    </div>
+<!-- Upload Preview Modal -->
+<div id="uploadModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 100; align-items: center; justify-content: center;">
+    <div class="card" style="width: 500px; max-width: 90%; max-height: 80vh; display: flex; flex-direction: column;">
+        <div class="d-flex justify-between align-center mb-4">
+            <h3 style="margin: 0;">Confirm Upload</h3>
+            <button class="btn btn-secondary p-0" style="width: 30px; height: 30px;" onclick="closeModal()">
+                <i class="fas fa-times"></i>
             </button>
-            <a href="/Tags" class="action-button">
-                <i class="fas fa-tags"></i>
-                <span>Manage Tags</span>
-            </a>
         </div>
-    </div>
-
-</div>
-
-<!-- Upload Modal -->
-<div id="uploadModal" class="modal" style="display: none;">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3>Upload Document</h3>
-            <span class="close" onclick="closeUploadModal()">&times;</span>
+        
+        <div id="uploadList" style="flex: 1; overflow-y: auto; margin-bottom: 1rem; border: 1px solid var(--border-color); border-radius: var(--radius);">
+            <!-- Items injected here -->
         </div>
-        <div class="modal-body">
-            <form id="uploadForm" enctype="multipart/form-data">
-                <div class="form-group">
-                    <label for="fileInput">Select File:</label>
-                    <input type="file" id="fileInput" name="file" accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png" required>
-                </div>
-                <div class="form-group">
-                    <label for="documentTitle">Document Title:</label>
-                    <input type="text" id="documentTitle" name="title" placeholder="Enter document title">
-                </div>
-                <div class="form-group">
-                    <label for="documentTags">Tags (comma-separated):</label>
-                    <input type="text" id="documentTags" name="tags" placeholder="e.g., invoice, 2024, legal">
-                </div>
-                <div class="form-group">
-                    <label for="documentSummary">Summary (optional):</label>
-                    <textarea id="documentSummary" name="summary" rows="3" placeholder="Brief description of the document"></textarea>
-                </div>
-                <div class="modal-actions">
-                    <button type="button" class="btn btn-secondary" onclick="closeUploadModal()">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Upload Document</button>
-                </div>
-            </form>
+
+        <div id="uploadProgress" class="mb-3" style="display: none;">
+            <div style="height: 6px; background: var(--secondary); border-radius: 3px; overflow: hidden;">
+                <div id="progressBar" style="width: 0%; height: 100%; background: var(--accent-primary); transition: width 0.3s;"></div>
+            </div>
+        </div>
+
+        <div class="d-flex justify-between align-center">
+            <span id="fileCount" class="text-muted">0 files selected</span>
+            <button class="btn btn-primary" onclick="confirmUpload()">
+                <i class="fas fa-cloud-upload-alt"></i> Upload All
+            </button>
         </div>
     </div>
 </div>
 
 <script>
-
-async function loadDashboard() {
-    try {
-        // Fetch documents
-        const docsRes = await fetch('http://localhost:8081/api/document');
-        const documents = await docsRes.json();
-        
-        // Fetch tags (assuming /api/tag exists, otherwise extract from docs)
-        let tagsCount = 0;
-        try {
-            const tagsRes = await fetch('http://localhost:8081/api/tag'); // URL guess based on TagController existence
-            if (tagsRes.ok) {
-                 const tags = await tagsRes.json();
-                 tagsCount = tags.length;
-            }
-        } catch (e) {
-            console.warn("Could not fetch tags, using default", e);
-        }
-
-        // Set document count
-        document.getElementById('totalDocuments').textContent = documents.length;
-        
-        // Set tags count
-        document.getElementById('totalTags').textContent = tagsCount;
-        
-        // Calculate recent uploads (last 7 days)
-        const weekAgo = new Date();
-        weekAgo.setDate(weekAgo.getDate() - 7);
-        const recentCount = documents.filter(doc => new Date(doc.uploadedAt) > weekAgo).length;
-        document.getElementById('recentUploads').textContent = recentCount;
-        
-        // Set access logs (Placeholder as we don't have an endpoint for this statistic yet or need to calculate it)
-        document.getElementById('accessLogs').textContent = "-";
-        
-        
-    } catch (error) {
-        console.error('Error loading dashboard:', error);
-        document.getElementById('totalDocuments').textContent = 'Error';
-        document.getElementById('totalTags').textContent = 'Error';
-        document.getElementById('recentUploads').textContent = 'Error';
-    }
-}
-
-// Upload modal functionality
-function openUploadModal() {
-    document.getElementById('uploadModal').style.display = 'block';
-}
-
-function closeUploadModal() {
-    document.getElementById('uploadModal').style.display = 'none';
-    document.getElementById('uploadForm').reset();
-}
-
-// Upload form submission
-document.getElementById('uploadForm').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    
+    const dropZone = document.getElementById('dropZone');
     const fileInput = document.getElementById('fileInput');
-    const titleInput = document.getElementById('documentTitle');
-    const tagsInput = document.getElementById('documentTags');
-    const summaryInput = document.getElementById('documentSummary');
-    
-    if (!fileInput.files[0]) {
-        alert('Please select a file to upload');
-        return;
-    }
-    
-    const formData = new FormData();
-    formData.append('File', fileInput.files[0]);
-    if (titleInput.value) formData.append('Title', titleInput.value);
-    
-    if (tagsInput.value) {
-        const tags = tagsInput.value.split(',');
-        tags.forEach(tag => formData.append('Tags', tag.trim()));
-    }
-    
-    try {
-        const response = await fetch('http://localhost:8081/api/document', {
-            method: 'POST',
-            body: formData
-        });
+    const uploadModal = document.getElementById('uploadModal');
+    let filesToUpload = [];
 
-        if (response.ok) {
-            alert('Document uploaded successfully!');
-            closeUploadModal();
-            loadDashboard(); // Reload stats
-        } else {
-            const err = await response.text();
-            alert('Upload failed: ' + err);
+    // Drag & Drop Events
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, preventDefaults, false);
+    });
+
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropZone.addEventListener(eventName, () => dropZone.style.borderColor = 'var(--accent-primary)', false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, () => dropZone.style.borderColor = 'var(--border-color)', false);
+    });
+
+    dropZone.addEventListener('drop', handleDrop, false);
+    dropZone.addEventListener('click', () => fileInput.click()); 
+
+    fileInput.addEventListener('change', function() {
+        handleFiles(this.files);
+    });
+
+    function handleDrop(e) {
+        const dt = e.dataTransfer;
+        handleFiles(dt.files);
+    }
+
+    function handleFiles(files) {
+        if (files.length > 0) {
+            filesToUpload = Array.from(files);
+            showModal();
         }
-    } catch (error) {
-        console.error('Upload error:', error);
-        alert('Upload failed: ' + error.message);
     }
-});
 
-// Close modal when clicking outside
-window.onclick = function(event) {
-    const modal = document.getElementById('uploadModal');
-    if (event.target === modal) {
-        closeUploadModal();
+    function showModal() {
+        const list = document.getElementById('uploadList');
+        list.innerHTML = filesToUpload.map((f, i) => `
+            <div class="d-flex align-center gap-2 p-2" style="border-bottom: 1px solid var(--border-color);">
+                <i class="fas fa-file-pdf text-accent" style="font-size: 1.5rem;"></i>
+                <div style="flex: 1; overflow: hidden;">
+                    <div style="font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${f.name}</div>
+                    <div class="text-muted" style="font-size: 0.8rem;">${(f.size / 1024 / 1024).toFixed(2)} MB</div>
+                </div>
+                <button class="btn btn-secondary" style="color: var(--danger);" onclick="removeFile(${i})">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `).join('');
+        
+        document.getElementById('fileCount').innerText = `${filesToUpload.length} files selected`;
+        uploadModal.style.display = 'flex';
     }
-}
 
-loadDashboard();
+    function removeFile(index) {
+        filesToUpload.splice(index, 1);
+        if (filesToUpload.length === 0) {
+            closeModal();
+        } else {
+            showModal();
+        }
+    }
+
+    function closeModal() {
+        uploadModal.style.display = 'none';
+        filesToUpload = [];
+        fileInput.value = ''; // Reset input
+    }
+
+    async function confirmUpload() {
+        if (filesToUpload.length === 0) return;
+        
+        const btn = document.querySelector('#uploadModal .btn-primary');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
+        btn.disabled = true;
+
+        document.getElementById('uploadProgress').style.display = 'block';
+        const progressBar = document.getElementById('progressBar');
+        
+        let successCount = 0;
+        const total = filesToUpload.length;
+
+        for (let i = 0; i < total; i++) {
+            const formData = new FormData();
+            formData.append('File', filesToUpload[i]);
+            
+            try {
+                const res = await fetch('http://localhost:8081/api/document', {
+                    method: 'POST',
+                    body: formData
+                });
+                if (res.ok) successCount++;
+            } catch (e) {
+                console.error(e);
+            }
+            
+            progressBar.style.width = `${((i + 1) / total) * 100}%`;
+        }
+
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+        closeModal();
+        document.getElementById('uploadProgress').style.display = 'none';
+        progressBar.style.width = '0%';
+        
+        loadDashboard(); 
+    }
+
+    // Dashboard Logic
+    async function loadDashboard() {
+        try {
+            const res = await fetch('http://localhost:8081/api/document');
+            const docs = await res.json();
+            
+            // Recent docs logic
+            const recentDocs = docs.sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt)).slice(0, 8);
+
+            const grid = document.getElementById('recentDocsGrid');
+            if (recentDocs.length === 0) {
+                grid.innerHTML = '<p class="text-muted">No documents found.</p>';
+                return;
+            }
+
+            grid.innerHTML = recentDocs.map(doc => `
+                <div class="card" onclick="window.location.href='/Details?id=${doc.id}'" style="cursor: pointer; position: relative; overflow: hidden; display: flex; flex-direction: column;">
+                     <!-- Zoomed Preview Section -->
+                    <div style="height: 180px; width: 100%; background: #27272a; overflow: hidden; position: relative; border-bottom: 1px solid var(--border-color);">
+                        <canvas id="thumb-${doc.id}" style="width: 100%; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5); transform-origin: top center;"></canvas>
+                         <div id="loading-${doc.id}" class="text-muted" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">Loading...</div>
+                    </div>
+
+                    <div class="d-flex flex-col gap-2 p-2" style="padding-top: 0.5rem;">
+                        <h4 style="margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 1rem;" title="${doc.fileName}">${doc.fileName}</h4>
+                        <span class="text-muted" style="font-size: 0.8rem;">${new Date(doc.uploadedAt).toLocaleDateString()}</span>
+                        <div class="d-flex gap-2" style="flex-wrap: wrap;">
+                            ${(doc.tags || []).map(t => `<span class="badge">${t.name || t}</span>`).join('')}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            // Trigget thumbnail generation
+            recentDocs.forEach(doc => generateThumbnail(doc.id));
+
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    async function generateThumbnail(docId) {
+        try {
+            const url = `http://localhost:8081/api/document/${docId}/download`;
+            const loadingTask = pdfjsLib.getDocument(url);
+            const pdf = await loadingTask.promise;
+            const page = await pdf.getPage(1);
+            
+            // Render at high quality, then CSS scales it down to fit/zoom
+            const scale = 1.0; 
+            const viewport = page.getViewport({ scale: scale });
+            const canvas = document.getElementById(`thumb-${docId}`);
+            if(!canvas) return;
+
+            const context = canvas.getContext('2d');
+            canvas.height = viewport.height;
+            canvas.width = viewport.width;
+
+            const renderContext = {
+                canvasContext: context,
+                viewport: viewport
+            };
+            await page.render(renderContext).promise;
+            
+            const loadingEl = document.getElementById(`loading-${docId}`);
+            if(loadingEl) loadingEl.style.display = 'none';
+
+        } catch (e) {
+            console.error(`Error generating thumbnail for ${docId}`, e);
+            const canvas = document.getElementById(`thumb-${docId}`);
+           if(canvas) {
+                const parent = canvas.parentElement;
+                parent.innerHTML = '<div style="height: 100%; display: flex; align-items: center; justify-content: center;"><i class="fas fa-file-pdf text-accent" style="font-size: 3rem;"></i></div>';
+           }
+        }
+    }
+
+    loadDashboard();
 </script>
-
-<style>
-body, .container-fluid { background: #222 !important; }
-.card { border-radius: 12px; }
-.badge { font-size: 0.9em; }
-
-/* Upload Modal Styles */
-.modal {
-    position: fixed;
-    z-index: 1000;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.7);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-    box-sizing: border-box;
-}
-
-.modal-content {
-    background-color: #2c2c2c;
-    border: 1px solid #404040;
-    border-radius: 8px;
-    width: 90%;
-    max-width: 500px;
-    max-height: 90vh;
-    overflow-y: auto;
-    margin: auto;
-    position: relative;
-}
-
-.modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1rem;
-    border-bottom: 1px solid #404040;
-}
-
-.modal-header h3 {
-    margin: 0;
-    color: #ffffff;
-}
-
-.close {
-    color: #b0b0b0;
-    font-size: 28px;
-    font-weight: bold;
-    cursor: pointer;
-    line-height: 1;
-}
-
-.close:hover {
-    color: #ffffff;
-}
-
-.modal-body {
-    padding: 1rem;
-}
-
-.form-group {
-    margin-bottom: 1rem;
-}
-
-.form-group label {
-    display: block;
-    margin-bottom: 0.5rem;
-    color: #ffffff;
-    font-weight: 500;
-}
-
-.form-group input,
-.form-group textarea {
-    width: 100%;
-    padding: 0.5rem;
-    border: 1px solid #404040;
-    border-radius: 4px;
-    background-color: #1a1a1a;
-    color: #ffffff;
-    font-size: 14px;
-}
-
-.form-group input:focus,
-.form-group textarea:focus {
-    outline: none;
-    border-color: #28a745;
-}
-
-.modal-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 0.5rem;
-    margin-top: 1rem;
-    padding-top: 1rem;
-    border-top: 1px solid #404040;
-}
-
-.btn {
-    padding: 0.5rem 1rem;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 14px;
-    font-weight: 500;
-    text-decoration: none;
-    display: inline-block;
-    text-align: center;
-}
-
-.btn-primary {
-    background-color: #28a745;
-    color: #ffffff;
-}
-
-.btn-primary:hover {
-    background-color: #218838;
-}
-
-.btn-secondary {
-    background-color: #6c757d;
-    color: #ffffff;
-}
-
-.btn-secondary:hover {
-    background-color: #5a6268;
-}
-</style>

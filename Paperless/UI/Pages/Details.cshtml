@@ -1,0 +1,254 @@
+@page
+@model DetailsModel
+@{
+    ViewData["Title"] = "Document Details";
+}
+
+<div class="animate-fade-in" style="height: calc(100vh - 100px); display: flex; flex-direction: column;">
+    <div class="d-flex justify-between align-center mb-4">
+        <div class="d-flex align-center gap-2">
+            <a href="/" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back</a>
+            <h1 id="docTitle" style="margin: 0;">Loading...</h1>
+        </div>
+        <div class="d-flex gap-2">
+            <a id="downloadBtn" href="#" class="btn btn-primary" target="_blank">
+                <i class="fas fa-download"></i> Download
+            </a>
+            <button class="btn btn-secondary" style="color: var(--danger);" onclick="deleteDocument()">
+                <i class="fas fa-trash"></i> Delete
+            </button>
+        </div>
+    </div>
+
+    <div style="display: flex; gap: var(--spacing-md); flex: 1; overflow: hidden;">
+        <!-- PDF Viewer -->
+        <div class="card" style="flex: 1; padding: 0; overflow: hidden; display: flex; flex-direction: column;">
+            <!-- Use object tag for better PDF embedding support -->
+            <object id="pdfObject" data="" type="application/pdf" style="flex: 1; width: 100%; height: 100%; border: none;">
+                <p class="p-4 text-center">
+                    It appears you don't have a PDF plugin for this browser.
+                    <a id="fallbackLink" href="#">Click here to download the PDF file.</a>
+                </p>
+            </object>
+        </div>
+
+        <!-- Metadata / OCR -->
+        <div class="card" style="width: 400px; display: flex; flex-direction: column;">
+            <!-- Tabs -->
+            <div class="d-flex gap-2 mb-4" style="border-bottom: 1px solid var(--border-color); padding-bottom: 1rem;">
+                <button id="tabMeta" class="btn btn-primary" style="flex: 1;" onclick="switchTab('meta')">Metadata</button>
+                <button id="tabOcr" class="btn btn-secondary" style="flex: 1;" onclick="switchTab('ocr')">OCR Text</button>
+            </div>
+            
+            <div style="flex: 1; overflow-y: auto;">
+                <!-- Metadata Content -->
+                <div id="contentMeta">
+                    <div class="mb-4">
+                        <label class="text-muted">Uploaded At</label>
+                        <div id="docDate" class="form-control" style="background: transparent; border: none; padding-left: 0;">-</div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="text-muted block mb-2">Tags</label>
+                        <div id="tagsList" class="d-flex gap-2 mb-2" style="flex-wrap: wrap;"></div>
+                        
+                        <div class="d-flex flex-col gap-2 mt-2">
+                             <div class="d-flex gap-2">
+                                <input type="text" id="newTagInput" class="form-control" placeholder="Add tag..." style="flex: 1;">
+                                <button class="btn btn-secondary" onclick="addTag()"><i class="fas fa-plus"></i></button>
+                             </div>
+                             
+                             <!-- Color Options -->
+                             <!-- Color Dropdown -->
+                             <div style="position: relative;">
+                                <button type="button" class="btn btn-secondary" onclick="toggleColorMenu()" style="padding: 0.5rem;">
+                                    <div class="d-flex align-center gap-2">
+                                        <div id="currentColorIndicator" style="width: 20px; height: 20px; border-radius: 50%; background-color: #3b82f6; border: 1px solid rgba(0,0,0,0.1);"></div>
+                                        <span>Color</span>
+                                        <i class="fas fa-chevron-down" style="font-size: 0.8rem;"></i>
+                                    </div>
+                                </button>
+                                
+                                <div id="colorMenu" class="card" style="display: none; position: absolute; top: 100%; left: 0; z-index: 100; margin-top: 5px; padding: 10px; width: 220px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);">
+                                    <div class="d-flex gap-2" style="flex-wrap: wrap;">
+                                        <div class="color-swatch" style="background-color: #3b82f6;" onclick="selectColor('#3b82f6')"></div>
+                                        <div class="color-swatch" style="background-color: #ef4444;" onclick="selectColor('#ef4444')"></div>
+                                        <div class="color-swatch" style="background-color: #10b981;" onclick="selectColor('#10b981')"></div>
+                                        <div class="color-swatch" style="background-color: #f59e0b;" onclick="selectColor('#f59e0b')"></div>
+                                        <div class="color-swatch" style="background-color: #8b5cf6;" onclick="selectColor('#8b5cf6')"></div>
+                                        <div class="color-swatch" style="background-color: #ec4899;" onclick="selectColor('#ec4899')"></div>
+                                        <div class="color-swatch" style="background-color: #6366f1;" onclick="selectColor('#6366f1')"></div>
+                                        <div class="color-swatch" style="background-color: #14b8a6;" onclick="selectColor('#14b8a6')"></div>
+                                        <div class="color-swatch" style="background-color: #84cc16;" onclick="selectColor('#84cc16')"></div>
+                                        <div class="color-swatch" style="background-color: #f97316;" onclick="selectColor('#f97316')"></div>
+                                        <div class="color-swatch" style="background-color: #64748b;" onclick="selectColor('#64748b')"></div>
+                                        <div class="color-swatch" style="background-color: #71717a;" onclick="selectColor('#71717a')"></div>
+                                    </div>
+                                </div>
+                             </div>
+                             <style>
+                                 .color-swatch { width: 24px; height: 24px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: transform 0.1s; }
+                                 .color-swatch:hover { transform: scale(1.1); box-shadow: 0 0 0 2px var(--accent-primary); }
+                             </style>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- OCR Content -->
+                <div id="contentOcr" style="display: none;">
+                     <div class="mb-4">
+                        <pre id="ocrText" style="white-space: pre-wrap; font-family: monospace; font-size: 0.85rem; color: var(--text-secondary);">No OCR text available.</pre>
+                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const id = urlParams.get('id');
+    let currentDoc = null;
+    let selectedColor = '#3b82f6';
+
+    function toggleColorMenu() {
+        const menu = document.getElementById('colorMenu');
+        menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+        
+        // Close when clicking outside
+        if (menu.style.display === 'block') {
+            setTimeout(() => {
+                document.addEventListener('click', closeMenuOutside, { once: true });
+            }, 0);
+        }
+    }
+
+    function closeMenuOutside(e) {
+        const menu = document.getElementById('colorMenu');
+        const btn = document.querySelector('button[onclick="toggleColorMenu()"]');
+        if (!menu.contains(e.target) && !btn.contains(e.target)) {
+            menu.style.display = 'none';
+        } else {
+             // Re-bind if we clicked inside (optional, but for now simple Close on selection is enough)
+        }
+    }
+
+    function selectColor(color) {
+        selectedColor = color;
+        document.getElementById('currentColorIndicator').style.backgroundColor = color;
+        document.getElementById('colorMenu').style.display = 'none';
+    }
+
+    async function loadDetails() {
+        if (!id) return;
+        try {
+            const res = await fetch(`http://localhost:8081/api/document/${id}`);
+            if (!res.ok) throw new Error('Not found');
+            const doc = await res.json();
+            currentDoc = doc;
+
+            document.getElementById('docTitle').innerText = doc.fileName;
+            document.getElementById('docDate').innerText = new Date(doc.uploadedAt).toLocaleString();
+            document.getElementById('ocrText').innerText = doc.ocrText || 'No OCR text available.';
+            
+            renderTags(doc.tags || []);
+            
+            const downloadUrl = `http://localhost:8081/api/document/${id}/download`;
+            document.getElementById('downloadBtn').href = downloadUrl;
+            document.getElementById('fallbackLink').href = downloadUrl;
+            document.getElementById('pdfObject').data = downloadUrl;
+
+        } catch (e) {
+            console.error(e);
+            alert('Failed to load document');
+        }
+    }
+
+    function renderTags(tags) {
+        const container = document.getElementById('tagsList');
+        container.innerHTML = tags.map(t => `
+            <span class="badge d-flex align-center gap-2" style="padding-right: 0.4rem; background-color: ${t.color || 'var(--secondary)'}; color: ${t.color ? '#fff' : 'inherit'};">
+                ${t.name} 
+                <i class="fas fa-times" style="cursor: pointer; opacity: 0.5;" onclick="removeTag('${t.name}')"></i>
+            </span>
+        `).join('');
+    }
+
+    async function addTag() {
+        const input = document.getElementById('newTagInput');
+        const tag = input.value.trim();
+        if (!tag) return;
+
+        try {
+            const res = await fetch(`http://localhost:8081/api/document/${id}/tags`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: tag, color: selectedColor })
+            });
+
+            if (res.ok) {
+                input.value = '';
+                if(!currentDoc.tags) currentDoc.tags = [];
+                currentDoc.tags.push({ name: tag, color: selectedColor }); 
+                renderTags(currentDoc.tags);
+            } else {
+                alert('Failed to add tag');
+            }
+        } catch (e) { console.error(e); }
+    }
+
+    async function removeTag(tag) {
+         if (!confirm(`Remove tag "${tag}"?`)) return;
+         try {
+            const res = await fetch(`http://localhost:8081/api/document/${id}/tags/${tag}`, {
+                method: 'DELETE'
+            });
+
+            if (res.ok) {
+                currentDoc.tags = currentDoc.tags.filter(t => (t.name || t) !== tag);
+                renderTags(currentDoc.tags);
+            } else {
+                alert('Failed to remove tag');
+            }
+        } catch (e) { console.error(e); }
+    }
+
+    function switchTab(tab) {
+        const btnMeta = document.getElementById('tabMeta');
+        const btnOcr = document.getElementById('tabOcr');
+        const contentMeta = document.getElementById('contentMeta');
+        const contentOcr = document.getElementById('contentOcr');
+
+        if (tab === 'meta') {
+            btnMeta.classList.remove('btn-secondary');
+            btnMeta.classList.add('btn-primary');
+            btnOcr.classList.remove('btn-primary');
+            btnOcr.classList.add('btn-secondary');
+            contentMeta.style.display = 'block';
+            contentOcr.style.display = 'none';
+        } else {
+            btnOcr.classList.remove('btn-secondary');
+            btnOcr.classList.add('btn-primary');
+            btnMeta.classList.remove('btn-primary');
+            btnMeta.classList.add('btn-secondary');
+            contentOcr.style.display = 'block';
+            contentMeta.style.display = 'none';
+        }
+    }
+
+    async function deleteDocument() {
+        if(!confirm('Are you sure?')) return;
+        try {
+            const res = await fetch(`http://localhost:8081/api/document/${id}`, { method: 'DELETE' });
+            if (res.ok) {
+                window.location.href = '/';
+            } else {
+                alert('Failed to delete');
+            }
+        } catch(e) {
+            console.error(e);
+        }
+    }
+
+    loadDetails();
+</script>

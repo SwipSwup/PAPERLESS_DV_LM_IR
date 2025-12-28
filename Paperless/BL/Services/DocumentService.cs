@@ -195,9 +195,9 @@ namespace BL.Services
             }
         }
 
-        public async Task AddTagToDocumentAsync(int documentId, string tagName)
+        public async Task AddTagToDocumentAsync(int documentId, TagDto tagDto)
         {
-            log.Info($"DocumentService.AddTagToDocumentAsync called for Document ID={documentId} Tag='{tagName}'");
+            log.Info($"DocumentService.AddTagToDocumentAsync called for Document ID={documentId} Tag='{tagDto.Name}'");
             try
             {
                 Document? document = await _documentRepo.GetByIdAsync(documentId);
@@ -207,15 +207,15 @@ namespace BL.Services
                     return;
                 }
 
-                if (!document.Tags.Any(t => t.Name.Equals(tagName, StringComparison.OrdinalIgnoreCase)))
+                if (!document.Tags.Any(t => t.Name.Equals(tagDto.Name, StringComparison.OrdinalIgnoreCase)))
                 {
-                    document.Tags.Add(new Tag { Name = tagName });
+                    document.Tags.Add(new Tag { Name = tagDto.Name, Color = tagDto.Color });
                     await _documentRepo.UpdateAsync(document);
                 }
             }
             catch (DataAccessException ex)
             {
-                throw new ServiceException($"Failed to add tag '{tagName}' to Document ID {documentId}.", ex);
+                throw new ServiceException($"Failed to add tag '{tagDto.Name}' to Document ID {documentId}.", ex);
             }
         }
 

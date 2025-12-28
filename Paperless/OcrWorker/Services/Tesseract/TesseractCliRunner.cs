@@ -14,7 +14,7 @@ public sealed class TesseractCliRunner(
         configuration["Tesseract:ExecutablePath"]
         ?? throw new InvalidOperationException(
             "Tesseract executable path not configured."
-            );
+        );
 
     public async Task<string> RunOcrAsync(
         string inputPdfPath,
@@ -37,8 +37,44 @@ public sealed class TesseractCliRunner(
             CreateNoWindow = true
         };
 
+        return await ExecuteTesseractAsync(processStartInfo, tempFile, cancellationToken);
+    }
+
+    public async Task<string> RunOcrForImageAsync(
+        byte[] imageBytes,
+        CancellationToken cancellationToken)
+    {
+        string tempDir = tmpUtility.CreateTempDirectory("tesseract_bytes");
+        string tempFile = tmpUtility.CreateTempFile(tempDir, "txt");
+
+        if (imageBytes == null || imageBytes.Length == 0)
+            throw new ArgumentException("Image bytes cannot be empty.", nameof(imageBytes));
+
+        logger.LogInformation("Starting OCR on memory image ({Length} bytes)", imageBytes.Length);
+
+        ProcessStartInfo processStartInfo = new ProcessStartInfo
+        {
+            FileName = _tesseractExecutablePath,
+            // 'stdin' tells Tesseract to read from StandardInput
+            Arguments = $"stdin \"{Path.ChangeExtension(tempFile, null)}\" --dpi 300",
+            RedirectStandardInput = true,
+            RedirectStandardError = true,
+            RedirectStandardOutput = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        };
+
+        return await ExecuteTesseractAsync(processStartInfo, tempFile, cancellationToken, imageBytes);
+    }
+
+    private async Task<string> ExecuteTesseractAsync(
+        ProcessStartInfo startInfo,
+        string outputFile,
+        CancellationToken cancellationToken,
+        byte[]? inputBytes = null)
+    {
         using Process process = new Process();
-        process.StartInfo = processStartInfo;
+        process.StartInfo = startInfo;
         process.EnableRaisingEvents = true;
 
         List<string> stdOut = [];
@@ -64,6 +100,12 @@ public sealed class TesseractCliRunner(
             process.BeginOutputReadLine();
             process.BeginErrorReadLine();
 
+            if (inputBytes != null)
+            {
+                await process.StandardInput.BaseStream.WriteAsync(inputBytes, cancellationToken);
+                process.StandardInput.Close();
+            }
+
             await process.WaitForExitAsync(cancellationToken);
 
             if (process.ExitCode != 0)
@@ -82,8 +124,13 @@ public sealed class TesseractCliRunner(
             logger.LogInformation("Tesseract OCR finished successfully.");
 
             // Tesseract automatically writes output to {output}.txt
-            string result = await File.ReadAllTextAsync(tempFile, cancellationToken);
+            string result = await File.ReadAllTextAsync(outputFile, cancellationToken);
             return result;
+        }
+        catch (System.ComponentModel.Win32Exception ex)
+        {
+            logger.LogError(ex, "Failed to start Tesseract process. Executable: {Path}", startInfo.FileName);
+            throw new InvalidOperationException($"Failed to start Tesseract. Make sure it is installed and '{startInfo.FileName}' is in your PATH. If running in Docker, ensure tesseract-ocr is installed.", ex);
         }
         catch (OperationCanceledException)
         {
@@ -92,7 +139,8 @@ public sealed class TesseractCliRunner(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Unexpected error during OCR execution.");
+            logger.LogError(ex, "Unexpected error during OCR execution. StdErr: {StdErr}",
+                string.Join(Environment.NewLine, stdErr));
             throw;
         }
     }

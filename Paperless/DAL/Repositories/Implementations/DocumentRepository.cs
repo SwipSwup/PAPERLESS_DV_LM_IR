@@ -62,7 +62,10 @@ namespace DAL.Repositories.Implementations
             log.Info($"DocumentRepository.UpdateAsync called for Document ID={model.Id}");
             return ExecuteRepositoryActionAsync(async () =>
             {
-                DocumentEntity? entity = await _context.Documents.FindAsync(model.Id);
+                DocumentEntity? entity = await _context.Documents
+                    .Include(d => d.Tags)
+                    .FirstOrDefaultAsync(d => d.Id == model.Id);
+
                 if (entity == null)
                     throw new DataAccessException($"Document {model.Id} not found.");
 

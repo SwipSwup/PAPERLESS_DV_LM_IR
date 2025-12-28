@@ -1,34 +1,25 @@
-﻿using ceTe.DynamicPDF.Rasterizer;
-using OcrWorker.Utils;
+﻿// Force update
+using ceTe.DynamicPDF.Rasterizer;
+
 
 namespace OcrWorker.Services.Pdf;
 
-public class DynamicPdfConverter(ITempFileUtility tmpUtility) : IPdfConverter
+public class DynamicPdfConverter : IPdfConverter
 {
-    public Task<string> ConvertToPngFilesAsync(
+    public Task<List<byte[]>> ConvertToPngBytesAsync(
         string pdfPath,
         CancellationToken cancellationToken = default)
     {
-        try
+        PdfRasterizer rasterizer = new PdfRasterizer(pdfPath);
+        List<byte[]> pages = new List<byte[]>();
+
+        for (int i = 0; i < rasterizer.Pages.Count; i++)
         {
-            string tempDir = tmpUtility.CreateTempDirectory("pdfConverter");
-            string tempFile = tmpUtility.CreateTempFile(tempDir, "png");
-
-            PdfRasterizer rasterizer = new PdfRasterizer(pdfPath);
-
-            cancellationToken.ThrowIfCancellationRequested();
-
-            rasterizer.Draw(
-                tempFile,
-                ImageFormat.Png,
-                ImageSize.Dpi300
-            );
-
-            return Task.FromResult(tempFile);
+            using MemoryStream ms = new MemoryStream();
+            rasterizer.Pages[i].Draw(ms, ImageFormat.Png, ImageSize.Dpi300);
+            pages.Add(ms.ToArray());
         }
-        finally
-        {
-            tmpUtility.DeleteDirectoryAsync(Path.GetDirectoryName(pdfPath)!);
-        }
+
+        return Task.FromResult(pages);
     }
 }

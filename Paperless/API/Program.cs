@@ -50,7 +50,7 @@ builder.Services.AddScoped<AccessLogService>();
 // --------------------
 builder.Services.Configure<RabbitMqSettings>(builder.Configuration.GetSection("RabbitMq"));
 builder.Services.AddSingleton(sp => sp.GetRequiredService<IOptions<RabbitMqSettings>>().Value);
-builder.Services.AddScoped<IDocumentMessageProducer, RabbitMqProducer>();
+builder.Services.AddSingleton<IDocumentMessageProducer, RabbitMqProducer>();
 
 builder.Services.Configure<MinioSettings>(builder.Configuration.GetSection("Minio"));
 builder.Services.AddSingleton(sp => sp.GetRequiredService<IOptions<MinioSettings>>().Value);

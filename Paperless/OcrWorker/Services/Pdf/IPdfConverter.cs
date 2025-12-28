@@ -2,7 +2,7 @@
 
 public interface IPdfConverter
 {
-    Task<string> ConvertToPngFilesAsync(
+    Task<List<byte[]>> ConvertToPngBytesAsync(
         string pdfPath,
         CancellationToken cancellationToken = default);
 }

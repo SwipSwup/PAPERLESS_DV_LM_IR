@@ -59,12 +59,57 @@ public class DocumentController(DocumentService service, IStorageService storage
         }
     }
 
+    [HttpGet("{id}/download")]
+    public async Task<IActionResult> Download(int id)
+    {
+        log.Info($"DocumentController: Download called for id={id}");
+        try
+        {
+            DocumentDto? document = await service.GetDocumentByIdAsync(id);
+            if (document == null)
+            {
+                 log.Warn($"DocumentController: Document {id} not found for download.");
+                 return NotFound();
+            }
+
+            if (string.IsNullOrEmpty(document.FilePath))
+            {
+                 log.Warn($"DocumentController: Document {id} has no file path.");
+                 return NotFound("File path is missing.");
+            }
+
+            Stream stream = await storageService.GetFileAsync(document.FilePath);
+            // Determine content type based on extension or default to octet-stream/pdf
+            string contentType = "application/octet-stream";
+            string ext = Path.GetExtension(document.FileName).ToLowerInvariant();
+            if (ext == ".pdf") contentType = "application/pdf";
+            else if (ext == ".jpg" || ext == ".jpeg") contentType = "image/jpeg";
+            else if (ext == ".png") contentType = "image/png";
+            else if (ext == ".txt") contentType = "text/plain";
+
+            // Set Content-Disposition to inline to allow browser preview
+            System.Net.Mime.ContentDisposition cd = new System.Net.Mime.ContentDisposition
+            {
+                FileName = document.FileName,
+                Inline = true  // This forces the browser to try and open it
+            };
+            Response.Headers.Append("Content-Disposition", cd.ToString());
+
+            return File(stream, contentType);
+        }
+        catch (Exception ex)
+        {
+            log.Error($"DocumentController: Error in Download id={id}", ex);
+            return StatusCode(500, ex.Message);
+        }
+    }
+
     [HttpPost]
     public async Task<IActionResult> Create([FromForm] DocumentUploadDto uploadDto)
     {
         log.Info($"DocumentController: Create called for file={uploadDto.File.FileName}");
 
-        if (uploadDto.File == null || uploadDto.File.Length == 0)
+        if (uploadDto.File.Length == 0)
         {
             return BadRequest("No file uploaded.");
         }
@@ -72,15 +117,14 @@ public class DocumentController(DocumentService service, IStorageService storage
         try
         {
             // 1. Upload file to MinIO
-            var now = DateTime.UtcNow;
-            string fileName = $"{now.Year}/{now.Month:D2}/{now.Day:D2}/{Guid.NewGuid()}_{uploadDto.File.FileName}";
-            using (var stream = uploadDto.File.OpenReadStream())
+            string fileName = $"{DateTime.UtcNow.Year}/{DateTime.UtcNow.Month:D2}/{DateTime.UtcNow.Day:D2}/{Guid.NewGuid()}_{uploadDto.File.FileName}";
+            using (Stream stream = uploadDto.File.OpenReadStream())
             {
                 await storageService.UploadFileAsync(stream, fileName, uploadDto.File.ContentType);
             }
 
             // 2. Create Document Entity
-            var document = new Document
+            Document document = new Document
             {
                 FileName = uploadDto.Title ?? uploadDto.File.FileName,
                 FilePath = fileName, // Store the object name/path in MinIO
@@ -94,7 +138,7 @@ public class DocumentController(DocumentService service, IStorageService storage
                  // For now, we'll map string tags to Tag entities if possible or let Service handle it.
                  // Since DocumentService.AddDocumentAsync takes a Document, we'll let it be.
                  // Simplified: Just add them as new Tag objects for now.
-                 foreach(var tag in uploadDto.Tags)
+                 foreach(string tag in uploadDto.Tags)
                  {
                      document.Tags.Add(new Tag { Name = tag });
                  }
@@ -179,6 +223,38 @@ public class DocumentController(DocumentService service, IStorageService storage
         {
             log.Error($"DocumentController: Error in Search keyword={keyword}", ex);
             return StatusCode(500, ex.Message);
+        }
+    }
+
+    [HttpPost("{id}/tags")]
+    public async Task<IActionResult> AddTag(int id, [FromBody] TagDto tag)
+    {
+        log.Info($"DocumentController: AddTag called for id={id} tag={tag.Name}");
+        try
+        {
+            await service.AddTagToDocumentAsync(id, tag);
+            return Ok();
+        }
+        catch (Exception ex)
+        {
+             log.Error($"DocumentController: Error adding tag to id={id}", ex);
+             return StatusCode(500, ex.Message);
+        }
+    }
+
+    [HttpDelete("{id}/tags/{tag}")]
+    public async Task<IActionResult> RemoveTag(int id, string tag)
+    {
+        log.Info($"DocumentController: RemoveTag called for id={id} tag={tag}");
+        try
+        {
+            await service.RemoveTagFromDocumentAsync(id, tag);
+            return Ok();
+        }
+        catch (Exception ex)
+        {
+             log.Error($"DocumentController: Error removing tag from id={id}", ex);
+             return StatusCode(500, ex.Message);
         }
     }
 }

@@ -15,6 +15,7 @@ namespace OcrWorker.Messaging
 
         private IConnection? _connection;
         private IChannel? _channel;
+        private IAsyncBasicConsumer? _consumer; // Keep reference
 
         public async Task ConsumeAsync<T>(
             string queueName,
@@ -23,53 +24,19 @@ namespace OcrWorker.Messaging
         {
             await EnsureConnectedAsync();
 
-            AsyncEventingBasicConsumer consumer = new AsyncEventingBasicConsumer(_channel!);
+            await _channel!.BasicQosAsync(0, 1, false);
 
-            consumer.ReceivedAsync += async (_, args) =>
-            {
-                try
-                {
-                    string json = Encoding.UTF8.GetString(args.Body.Span);
+            _consumer = new OcrConsumer<T>(_channel!, logger, onMessage, ct);
 
-                    T? message = JsonSerializer.Deserialize<T>(json);
-                    if (message == null)
-                    {
-                        logger.LogWarning("Received null message");
-                        await _channel!.BasicNackAsync(
-                            args.DeliveryTag,
-                            multiple: false,
-                            requeue: false,
-                            cancellationToken: ct
-                        );
-                        return;
-                    }
-
-                    await onMessage(message, args.DeliveryTag, ct);
-
-                    await _channel!.BasicAckAsync(args.DeliveryTag, false, ct);
-                }
-                catch (Exception ex)
-                {
-                    logger.LogError(ex, "Error processing message");
-
-                    // Requeue=true ensures retry if it's a temporary issue
-                    await _channel!.BasicNackAsync(args.DeliveryTag, false, requeue: true, ct);
-                }
-            };
-
-            await _channel!.BasicConsumeAsync(
+            string consumerTag = await _channel!.BasicConsumeAsync(
                 queue: queueName,
-                autoAck: false, // Manual ack ensures reliability
-                consumer: consumer,
+                autoAck: false, 
+                consumer: _consumer,
                 cancellationToken: ct);
 
-            logger.LogInformation("RabbitMQ Consumer started on queue '{queueName}'", queueName);
+            logger.LogInformation("RabbitMQ Consumer started on queue '{queueName}'. Consumer Tag: {Tag}", queueName, consumerTag);
         }
 
-        /// <summary>
-        /// Ensures RabbitMQ connection + channel are created.
-        /// Automatically reconnects if connection was lost.
-        /// </summary>
         private async Task EnsureConnectedAsync()
         {
             if (_connection is { IsOpen: true } && _channel is { IsOpen: true })
@@ -83,12 +50,16 @@ namespace OcrWorker.Messaging
                 HostName = _settings.Host,
                 Port = _settings.Port,
                 UserName = _settings.User,
-                Password = _settings.Password,
-                //DispatchConsumersAsync = true
+                Password = _settings.Password
             };
 
             _connection = await factory.CreateConnectionAsync();
+            _connection.ConnectionShutdownAsync += async (o, e) => 
+                logger.LogWarning("RabbitMQ Connection Shutdown: {Reason}", e.ReplyText);
+
             _channel = await _connection.CreateChannelAsync();
+            _channel.ChannelShutdownAsync += async (o, e) =>
+                logger.LogWarning("RabbitMQ Channel Shutdown: {Reason}", e.ReplyText);
 
             await _channel.QueueDeclareAsync(
                 queue: _settings.QueueName,
@@ -103,6 +74,60 @@ namespace OcrWorker.Messaging
         {
             _channel?.DisposeAsync().AsTask().Wait();
             _connection?.DisposeAsync().AsTask().Wait();
+        }
+
+        // Inner class implementation
+        private class OcrConsumer<T>(
+            IChannel channel, 
+            ILogger logger, 
+            Func<T, ulong, CancellationToken, Task> onMessage,
+            CancellationToken appToken) : IAsyncBasicConsumer
+        {
+            public IChannel Channel => channel;
+
+            public async Task HandleBasicDeliverAsync(
+                string consumerTag, 
+                ulong deliveryTag, 
+                bool redelivered, 
+                string exchange, 
+                string routingKey, 
+                IReadOnlyBasicProperties properties, 
+                ReadOnlyMemory<byte> body,
+                CancellationToken cancellationToken)
+            {
+                logger.LogInformation("Message received! Tag: {Tag}", deliveryTag);
+
+                try
+                {
+                    string json = Encoding.UTF8.GetString(body.Span);
+                    logger.LogDebug("Message Body: {Body}", json);
+
+                    T? message = JsonSerializer.Deserialize<T>(json);
+                    
+                    if (message == null)
+                    {
+                        logger.LogWarning("Received null message - Nacking");
+                        await Channel.BasicNackAsync(deliveryTag, false, false, appToken);
+                        return;
+                    }
+
+                    await onMessage(message, deliveryTag, appToken);
+
+                    await Channel.BasicAckAsync(deliveryTag, false, appToken);
+                    logger.LogInformation("Message acknowledged. Tag: {Tag}", deliveryTag);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Error processing message");
+                    await Channel.BasicNackAsync(deliveryTag, false, true, appToken);
+                }
+            }
+
+            public Task HandleBasicCancelAsync(string consumerTag, CancellationToken cancellationToken) => Task.CompletedTask;
+            public Task HandleBasicCancelOkAsync(string consumerTag, CancellationToken cancellationToken) => Task.CompletedTask;
+            public Task HandleBasicConsumeOkAsync(string consumerTag, CancellationToken cancellationToken) => Task.CompletedTask;
+            public Task HandleBasicRecoverOkAsync(string consumerTag, CancellationToken cancellationToken) => Task.CompletedTask;
+            public Task HandleChannelShutdownAsync(object model, ShutdownEventArgs reason) => Task.CompletedTask;
         }
     }
 }

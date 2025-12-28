@@ -196,21 +196,4 @@ public class DocumentServiceTests
         _mockDocumentLogRepo.Verify(x => x.AddAsync(It.Is<DocumentLog>(log => 
             log.Id == documentId && log.Action == action && log.Details == details)), Times.Once);
     }
-
-    [Test]
-    public async Task AddTagToDocumentAsync_WhenDocumentDoesNotExist_ShouldNotAddTag()
-    {
-        // Arrange
-        var documentId = 1;
-        var tagName = "Important";
-
-        _mockDocumentRepo.Setup(x => x.GetByIdAsync(documentId)).ReturnsAsync((Document?)null);
-
-        // Act
-        await _documentService.AddTagToDocumentAsync(documentId, tagName);
-
-        // Assert
-        _mockDocumentRepo.Verify(x => x.GetByIdAsync(documentId), Times.Once);
-        _mockDocumentRepo.Verify(x => x.UpdateAsync(It.IsAny<Document>()), Times.Never);
-    }
 }

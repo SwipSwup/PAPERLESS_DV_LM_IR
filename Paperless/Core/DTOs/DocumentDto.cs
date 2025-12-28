@@ -4,8 +4,10 @@
     {
         public int Id { get; set; }
         public string FileName { get; set; } = string.Empty;
+        public string FilePath { get; set; } = string.Empty;
         public string? Summary { get; set; }
         public DateTime UploadedAt { get; set; }
-        public List<string> Tags { get; set; } = new();
+        public string? OcrText { get; set; }
+        public List<TagDto> Tags { get; set; } = new();
     }
 }

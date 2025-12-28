@@ -1,0 +1,43 @@
+:root {
+    /* Color Palette - Monochromatic & Electric Amber */
+    --bg-body: #09090b;
+    /* Zinc 950 */
+    --bg-card: #18181b;
+    /* Zinc 900 */
+    --bg-header: rgba(9, 9, 11, 0.8);
+    --text-primary: #fafafa;
+    /* Zinc 50 */
+    --text-secondary: #a1a1aa;
+    /* Zinc 400 */
+
+    /* Accent: Electric Amber */
+    --accent-primary: #f59e0b;
+    /* Amber 500 */
+    --accent-hover: #d97706;
+    /* Amber 600 */
+    --accent-subtle: rgba(245, 158, 11, 0.1);
+
+    --danger: #ef4444;
+    /* Red 500 */
+    --success: #22c55e;
+    /* Green 500 */
+    --border-color: #27272a;
+    /* Zinc 800 */
+
+    /* Typography */
+    --font-heading: 'Outfit', sans-serif;
+    --font-body: 'Inter', sans-serif;
+
+    /* Spacing */
+    --spacing-sm: 0.5rem;
+    --spacing-md: 1rem;
+    --spacing-lg: 2rem;
+
+    /* Effects */
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    --radius: 0.5rem;
+    /* Sharper corners */
+    --blur: blur(16px);
+}
