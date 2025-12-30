@@ -4,6 +4,7 @@ using Core.Exceptions;
 using Core.Messaging;
 using Core.Models;
 using Core.Repositories.Interfaces;
+using Core.Interfaces;
 using log4net;
 using System.Reflection;
 
@@ -18,19 +19,22 @@ namespace BL.Services
         private readonly IDocumentLogRepository _documentLogRepo;
         private readonly IMapper _mapper;
         private readonly IDocumentMessageProducer _producer;
+        private readonly ISearchService _searchService;
 
         public DocumentService(
             IDocumentRepository documentRepo,
             IAccessLogRepository accessLogRepo,
             IDocumentLogRepository documentLogRepo,
             IMapper mapper,
-            IDocumentMessageProducer producer)
+            IDocumentMessageProducer producer,
+            ISearchService searchService)
         {
             _documentRepo = documentRepo ?? throw new ArgumentNullException(nameof(documentRepo));
             _accessLogRepo = accessLogRepo ?? throw new ArgumentNullException(nameof(accessLogRepo));
             _documentLogRepo = documentLogRepo ?? throw new ArgumentNullException(nameof(documentLogRepo));
             _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
             _producer = producer ?? throw new ArgumentNullException(nameof(producer));
+            _searchService = searchService ?? throw new ArgumentNullException(nameof(searchService));
 
             log.Info("DocumentService initialized");
         }
@@ -136,8 +140,8 @@ namespace BL.Services
             log.Info($"DocumentService.SearchDocumentsAsync called with keyword='{keyword}'");
             try
             {
-                List<Document> documents = await _documentRepo.SearchDocumentsAsync(keyword);
-                return _mapper.Map<List<DocumentDto>>(documents);
+                var dtos = await _searchService.SearchDocumentsAsync(keyword);
+                return dtos.ToList();
             }
             catch (DataAccessException ex)
             {

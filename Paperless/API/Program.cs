@@ -12,6 +12,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.EntityFrameworkCore;
 using Core.Interfaces;
 using DAL.Services;
+using Elastic.Clients.Elasticsearch;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
@@ -41,6 +42,16 @@ builder.Services.AddScoped<ITagRepository, TagRepository>();
 builder.Services.AddScoped<DocumentService>();
 builder.Services.AddScoped<TagService>();
 builder.Services.AddScoped<AccessLogService>();
+builder.Services.AddScoped<ISearchService, SearchService>();
+
+// ElasticSearch
+builder.Services.AddSingleton<ElasticsearchClient>(sp =>
+{
+    var uri = builder.Configuration["ElasticSearch:Uri"] ?? "http://elasticsearch:9200";
+    var settings = new ElasticsearchClientSettings(new Uri(uri))
+        .DisableDirectStreaming(); // Capture Request/Response bytes
+    return new ElasticsearchClient(settings);
+});
 
 // --------------------
 // Register Messager
