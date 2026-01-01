@@ -15,17 +15,12 @@
             <div class="card bg-secondary">
                 <div class="card-body">
                     <div class="row">
-                        <div class="col-md-8">
-                            <div class="input-group">
-                                <input type="text" class="form-control bg-dark text-light" id="searchInput" placeholder="Enter search keywords...">
-                                <button class="btn btn-outline-light" type="button" onclick="performSearch()">Search</button>
+                        <div class="col-12">
+                            <div class="input-group gap-3">
+                                <input type="text" class="form-control bg-dark text-light" id="searchInput" placeholder="Enter search keywords... (Press Enter)" 
+                                       onkeypress="if(event.key === 'Enter') performSearch()">
+                                <button class="btn btn-primary text-light px-4" type="button" onclick="performSearch()">Search</button>
                             </div>
-                        </div>
-                        <div class="col-md-4">
-                            <select class="form-select bg-dark text-light" id="tagFilter">
-                                <option value="">Filter by tag</option>
-                                <!-- Tags will be loaded dynamicaly -->
-                            </select>
                         </div>
                     </div>
                 </div>
@@ -37,7 +32,7 @@
         <div class="col-12">
             <div class="card bg-secondary">
                 <div class="card-body">
-                    <h5 class="card-title">Search Results</h5>
+                    <h5 class="card-title">Search Results <small class="text-muted" id="resultsCount"></small></h5>
                     <div id="searchResults" class="row g-3">
                         <div class="col-12 text-center text-muted">
                             <p>Enter search terms above to find documents</p>
@@ -54,7 +49,7 @@ let allTags = [];
 
 async function loadTags() {
     try {
-        const res = await fetch('http://localhost:8085/api/tag');
+        const res = await fetch('/api/tag');
         const tags = await res.json();
         allTags = tags;
         
@@ -79,29 +74,30 @@ async function performSearch() {
         const resultsContainer = document.getElementById('searchResults');
         resultsContainer.innerHTML = '<div class="col-12 text-center"><div class="spinner-border" role="status"></div></div>';
         
-        const response = await fetch(`http://localhost:8085/api/document/search?keyword=${encodeURIComponent(searchTerm)}`);
+        const response = await fetch(`/api/document/search?keyword=${encodeURIComponent(searchTerm)}`);
+        
+        if (!response.ok) {
+             throw new Error(`API Error ${response.status}`);
+        }
+
         const documents = await response.json();
         
-        // Filter by tag if selected
-        let filteredDocs = documents;
-        if (tagFilter) {
-            filteredDocs = documents.filter(doc => 
-                doc.tags.some(tag => tag.id == tagFilter)
-            );
-        }
-        
-        if (filteredDocs.length === 0) {
-            resultsContainer.innerHTML = '<div class="col-12 text-center text-muted"><p>No documents found matching your search criteria</p></div>';
+        document.getElementById('resultsCount').innerText = `(Found: ${documents.length})`;
+
+        if (documents.length === 0) {
+            resultsContainer.innerHTML = `<div class="col-12 text-center text-muted">
+                <p>No documents found matching your search criteria.</p>
+            </div>`;
             return;
         }
         
-        resultsContainer.innerHTML = filteredDocs.map(doc => `
+        resultsContainer.innerHTML = documents.map(doc => `
             <div class='col-md-4'>
                 <div class='card bg-dark text-light'>
                     <div class='card-body'>
                         <h6 class='card-title'>${doc.fileName}</h6>
                         <p class='card-text small text-muted'>${new Date(doc.uploadedAt).toLocaleDateString()}</p>
-                        <div class='mb-2'>${doc.tags.map(tag => `<span class='badge bg-info me-1'>${tag}</span>`).join('')}</div>
+                        <div class='mb-2'>${(doc.tags || []).map(tag => `<span class='badge bg-info me-1'>${tag.name || tag}</span>`).join('')}</div>
                         ${doc.summary ? `<p class='card-text small'>${doc.summary.substring(0, 100)}...</p>` : ''}
                         <a href='/Documents/Detail?id=${doc.id}' class='btn btn-outline-light btn-sm'>View Details</a>
                     </div>
@@ -111,7 +107,10 @@ async function performSearch() {
         
     } catch (error) {
         console.error('Search error:', error);
-        document.getElementById('searchResults').innerHTML = '<div class="col-12 text-center text-danger"><p>Error performing search</p></div>';
+        document.getElementById('searchResults').innerHTML = `<div class="col-12 text-center text-danger">
+            <p>Error performing search: ${error.message}</p>
+            <p class="small text-muted">Check console for details.</p>
+        </div>`;
     }
 }
 

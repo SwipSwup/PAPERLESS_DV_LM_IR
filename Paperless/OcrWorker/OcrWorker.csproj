@@ -26,5 +26,6 @@
     <ItemGroup>
       <ProjectReference Include="..\Core\Core.csproj" />
       <ProjectReference Include="..\DAL\DAL.csproj" />
+      <ProjectReference Include="..\BL\BL.csproj" />
     </ItemGroup>
 </Project>

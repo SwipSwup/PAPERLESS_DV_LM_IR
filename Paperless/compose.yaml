@@ -24,18 +24,18 @@
     environment:
       - DOTNET_ENVIRONMENT=Production
 
-  #  indexingworker:
-  #    container_name: paperless-indexingworker
-  #    build:
-  #      context: .
-  #      dockerfile: IndexingWorker/Dockerfile
-  #    depends_on:
-  #      rabbitmq:
-  #        condition: service_healthy
-  ##      elasticsearch:
-  ##        condition: service_healthy
-  #    environment:
-  #      - DOTNET_ENVIRONMENT=Production
+  indexingworker:
+    container_name: paperless-indexingworker
+    build:
+      context: .
+      dockerfile: IndexingWorker/Dockerfile
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_started
+    environment:
+      - DOTNET_ENVIRONMENT=Production
 
   #  batchworker:
   #    container_name: paperless-batchworker
@@ -147,16 +147,17 @@
     environment:
       - discovery.type=single-node
       - ES_JAVA_OPTS=-Xms512m -Xmx512m
+      - xpack.security.enabled=false
     ports:
       - "9200:9200"
     volumes:
       - elastic_data:/usr/share/elasticsearch/data
-#    healthcheck:
-#      test: ["CMD-SHELL", "curl -fsSL http://localhost:9200/_cluster/health | grep -q '\"status\"'"]
-#      interval: 10s
-#      timeout: 10s
-#      retries: 10
-#      start_period: 15s
+   # healthcheck:
+   #   test: ["CMD-SHELL", "curl -fsSL http://localhost:9200/_cluster/health | grep -q '\"status\"'"]
+   #   interval: 10s
+   #   timeout: 10s
+   #   retries: 10
+   #   start_period: 15s
 
 volumes:
   postgres_data:

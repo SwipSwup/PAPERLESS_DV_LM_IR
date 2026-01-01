@@ -19,6 +19,12 @@ public class OcrService(ITesseractCliRunner tesseract, IPdfConverter pdfConverte
             fullText.AppendLine(pageText);
         }
 
-        return fullText.ToString();
+        string result = fullText.ToString();
+        logger.LogInformation("OCR Complete. Extracted {Length} characters.", result.Length);
+        if (string.IsNullOrWhiteSpace(result))
+        {
+            logger.LogWarning("OCR Result is empty or whitespace!");
+        }
+        return result;
     }
 }

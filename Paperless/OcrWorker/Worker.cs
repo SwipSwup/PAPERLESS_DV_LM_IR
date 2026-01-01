@@ -2,6 +2,7 @@ using ceTe.DynamicPDF.Rasterizer;
 using Core.DTOs;
 using Core.Models;
 using Core.Repositories.Interfaces;
+using Core.Messaging;
 using OcrWorker.Messaging;
 using OcrWorker.Services.Ocr;
 using OcrWorker.Storage;
@@ -11,6 +12,7 @@ namespace OcrWorker;
 public class Worker(
     ILogger<Worker> logger,
     IMessageConsumer consumer,
+    IDocumentMessageProducer producer,
     IServiceProvider serviceProvider)
     : BackgroundService
 {
@@ -66,6 +68,9 @@ public class Worker(
                     doc.OcrText = text;
                     await repo.UpdateAsync(doc);
                     logger.LogInformation("Database updated for document {id}", msg.DocumentId);
+
+                    // Publish to Indexing
+                    await producer.PublishDocumentAsync(msg); // Reusing msg as it has ID.
                 }
                 else
                 {

@@ -11,16 +11,21 @@
     </div>
 
     <!-- Search & Filter Bar -->
-    <div class="card d-flex gap-4 align-center mb-4" style="padding: 0.75rem;">
-        <div class="d-flex align-center gap-2" style="flex: 1;">
-            <i class="fas fa-search text-muted"></i>
-            <input type="text" id="searchInput" class="form-control" style="background: transparent; border: none;" placeholder="Search by name, content, or tag...">
+    <div class="card mb-4" style="padding: 0.75rem;">
+        <div class="d-flex align-center gap-3">
+             <div class="flex-1">
+                <input type="text" class="form-control" id="searchInput" placeholder="Search documents... (Press Enter)" 
+                       onkeypress="if(event.key === 'Enter') performSearch()">
+            </div>
+            <div style="border-left: 1px solid var(--border-color); height: 24px;"></div>
+            <div class="d-flex gap-2">
+                <select class="form-control" style="width: auto; background: transparent; border: none; color: var(--text-secondary);">
+                    <option>Sort by Date</option>
+                    <option>Sort by Name</option>
+                </select>
+                <button class="btn btn-primary" type="button" onclick="performSearch()">Search</button>
+            </div>
         </div>
-        <div style="border-left: 1px solid var(--border-color); height: 24px;"></div>
-        <select class="form-control" style="width: auto; background: transparent; border: none; color: var(--text-secondary);">
-            <option>Sort by Date</option>
-            <option>Sort by Name</option>
-        </select>
     </div>
 
     <!-- Documents Grid -->
@@ -33,15 +38,30 @@
 <script>
     let allDocs = [];
 
-    async function loadDocuments() {
+    async function loadDocuments(searchTerm = '') {
+        const grid = document.getElementById('documentsGrid');
+        grid.innerHTML = '<p class="text-muted">Loading...</p>';
+        
         try {
-            const res = await fetch('http://localhost:8081/api/document');
-            allDocs = await res.json();
-            renderDocs(allDocs);
+            let url = '/api/document';
+            if (searchTerm && searchTerm.trim() !== '') {
+                url = `/api/document/search?keyword=${encodeURIComponent(searchTerm)}`;
+            }
+
+            const res = await fetch(url);
+            if (!res.ok) throw new Error(`API Error ${res.status}`);
+            
+            const docs = await res.json();
+            renderDocs(docs);
         } catch (e) {
             console.error(e);
-            document.getElementById('documentsGrid').innerHTML = '<p class="text-danger">Failed to load documents.</p>';
+            grid.innerHTML = `<p class="text-danger">Failed to load documents: ${e.message}</p>`;
         }
+    }
+
+    function performSearch() {
+        const term = document.getElementById('searchInput').value;
+        loadDocuments(term);
     }
 
     function renderDocs(docs) {
@@ -58,7 +78,7 @@
         }
 
         grid.innerHTML = docs.map(doc => `
-             <div class="card d-flex flex-row gap-4 p-0 overflow-hidden" onclick="window.location.href='/Details?id=${doc.id}'" style="cursor: pointer; height: 200px; transition: transform 0.2s; align-items: stretch;">
+             <div class="card d-flex flex-row gap-4 p-0 overflow-hidden" onclick="window.location.href='/Documents/Detail?id=${doc.id}'" style="cursor: pointer; height: 200px; transition: transform 0.2s; align-items: stretch;">
                 
                 <!-- Left: Preview -->
                 <div style="background: #27272a; width: 200px; min-width: 200px; position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden; border-right: 1px solid var(--border-color);">
@@ -75,14 +95,14 @@
                         </div>
                         
                         <div class="mt-2 text-muted" style="font-size: 0.9rem; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; height: 3em;">
-                             ${doc.ocrText ? doc.ocrText.substring(0, 300) : 'No preview text available.'}
+                             ${doc.summary ? doc.summary : (doc.ocrText ? doc.ocrText.substring(0, 300) : 'No preview text available.')}
                         </div>
                     </div>
 
                     <div class="d-flex gap-2 mt-3" style="flex-wrap: wrap;">
                         ${(doc.tags || []).map(t => `
                             <span class="badge" style="background-color: ${t.color || 'var(--secondary)'}; color: ${t.color ? '#fff' : 'inherit'};">
-                                ${t.name}
+                                ${t.name || t}
                             </span>
                         `).join('')}
                     </div>
@@ -94,15 +114,15 @@
         docs.forEach(doc => generateThumbnail(doc.id));
     }
     
-    // Thumbnail Logic (Duplicated from Dashboard for simplicity, ideally in app.js but contexts differ slightly)
+    // Thumbnail Logic
     async function generateThumbnail(docId) {
         try {
-            const url = `http://localhost:8081/api/document/${docId}/download`;
+            const url = `/api/document/${docId}/download`;
             const loadingTask = pdfjsLib.getDocument(url);
             const pdf = await loadingTask.promise;
             const page = await pdf.getPage(1);
             
-            const scale = 0.4; // Smaller for list
+            const scale = 0.4;
             const viewport = page.getViewport({ scale: scale });
             const canvas = document.getElementById(`thumb-${docId}`);
             if(!canvas) return;
@@ -121,7 +141,6 @@
             if(loadingEl) loadingEl.style.display = 'none';
 
         } catch (e) {
-            // Fallback
              const canvas = document.getElementById(`thumb-${docId}`);
            if(canvas) {
                 const parent = canvas.parentElement;
@@ -130,26 +149,13 @@
         }
     }
 
-    // Search Logic
-    const searchInput = document.getElementById('searchInput');
-    searchInput.addEventListener('input', (e) => {
-        const term = e.target.value.toLowerCase();
-        const filtered = allDocs.filter(d => 
-            d.fileName.toLowerCase().includes(term) || 
-            (d.ocrText && d.ocrText.toLowerCase().includes(term))
-        );
-        renderDocs(filtered);
-    });
-
-    // Check for search query param
+    // Check for search query param on load
     const urlParams = new URLSearchParams(window.location.search);
     const searchParam = urlParams.get('search');
     if (searchParam) {
-        searchInput.value = searchParam;
-        // Logic will trigger after fetch
+        document.getElementById('searchInput').value = searchParam;
+        loadDocuments(searchParam);
+    } else {
+        loadDocuments();
     }
-
-    loadDocuments().then(() => {
-        if (searchParam) searchInput.dispatchEvent(new Event('input'));
-    });
 </script>
