@@ -1,0 +1,11 @@
+<AccessLogs>
+    <Entry>
+        <!-- Replace with actual Document IDs from your DB -->
+        <DocumentId>1</DocumentId>
+        <AccessCount>50</AccessCount>
+    </Entry>
+    <Entry>
+        <DocumentId>2</DocumentId>
+        <AccessCount>12</AccessCount>
+    </Entry>
+</AccessLogs>

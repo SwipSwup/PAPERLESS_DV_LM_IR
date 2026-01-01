@@ -2,6 +2,27 @@
 
 A comprehensive document management system built with .NET 9, featuring OCR processing, AI-powered summarization, full-text search, and a modern web interface. The system is designed with a microservices architecture using Docker containers and message queues for scalable document processing.
 
+## Integration Tests (Sprint 7)
+To verify the Batch Processing feature, we have provided an automated PowerShell script.
+
+### Prerequisites
+- Docker usage must be running (`docker-compose up`).
+- At least one document must exist in the database.
+
+### How to Run
+1. Open PowerShell.
+2. Navigate to `Paperless/tests`.
+3. Run the script:
+   ```powershell
+   ./integration_test.ps1
+   ```
+
+The script will:
+- Check current access count of a document.
+- Generate a test XML in `batch_input`.
+- Wait for processing.
+- Verify the access count increased.
+
 ## 🏗️ Architecture Overview
 
 The system follows a clean architecture pattern with the following layers:
