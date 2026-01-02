@@ -37,18 +37,7 @@ builder.Services.AddAutoMapper(cfg =>
 builder.Services.AddScoped<IDocumentRepository, DocumentRepository>();
 
 builder.Services.AddSingleton<IMessageConsumer, MessageConsumer>();
-builder.Services.AddSingleton<IDocumentMessageProducer>(sp => {
-    var settings = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Core.Configuration.RabbitMqSettings>>().Value;
-    var producerSettings = new Core.Configuration.RabbitMqSettings 
-    { 
-         Host = settings.Host, 
-         Port = settings.Port, 
-         User = settings.User, 
-         Password = settings.Password,
-         QueueName = "indexing" 
-    };
-    return new RabbitMqProducer(producerSettings);
-});
+builder.Services.AddSingleton<OcrWorker.Messaging.IDocumentMessageProducerFactory, OcrWorker.Messaging.DocumentMessageProducerFactory>();
 builder.Services.AddScoped<IPdfConverter, DynamicPdfConverter>();
 builder.Services.AddScoped<IStorageWrapper, StorageWrapper>();
 builder.Services.AddScoped<ITesseractCliRunner, TesseractCliRunner>();

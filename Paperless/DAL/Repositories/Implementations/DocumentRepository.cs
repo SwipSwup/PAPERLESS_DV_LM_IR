@@ -69,7 +69,72 @@ namespace DAL.Repositories.Implementations
                 if (entity == null)
                     throw new DataAccessException($"Document {model.Id} not found.");
 
-                _mapper.Map(model, entity);
+                // Update basic properties (excluding Tags which we'll handle separately)
+                entity.FileName = model.FileName;
+                entity.FilePath = model.FilePath;
+                entity.OcrText = model.OcrText;
+                entity.Summary = model.Summary;
+                entity.UploadedAt = model.UploadedAt;
+
+                // Handle tags: find existing tags by name or create new ones
+                if (model.Tags != null)
+                {
+                    var tagEntities = new List<TagEntity>();
+                    
+                    foreach (var tag in model.Tags)
+                    {
+                        TagEntity? tagEntity;
+                        
+                        if (tag.Id > 0)
+                        {
+                            // Tag has an ID, try to find it
+                            tagEntity = await _context.Tags.FindAsync(tag.Id);
+                            if (tagEntity == null)
+                            {
+                                log.Warn($"Tag with ID {tag.Id} not found, creating new tag with name '{tag.Name}'");
+                                tagEntity = null; // Will create new one below
+                            }
+                        }
+                        else
+                        {
+                            // Tag has no ID, try to find by name (case-insensitive)
+                            tagEntity = await _context.Tags
+                                .FirstOrDefaultAsync(t => t.Name.ToLower() == tag.Name.ToLower());
+                        }
+                        
+                        if (tagEntity == null)
+                        {
+                            // Create new tag
+                            tagEntity = new TagEntity
+                            {
+                                Name = tag.Name,
+                                Color = tag.Color
+                            };
+                            await _context.Tags.AddAsync(tagEntity);
+                            log.Info($"Created new tag '{tag.Name}' with color {tag.Color}");
+                        }
+                        else
+                        {
+                            // Update existing tag's color if it changed
+                            if (tag.Color != null && tagEntity.Color != tag.Color)
+                            {
+                                tagEntity.Color = tag.Color;
+                                log.Info($"Updated tag '{tag.Name}' color to {tag.Color}");
+                            }
+                        }
+                        
+                        tagEntities.Add(tagEntity);
+                    }
+                    
+                    // Replace the tags collection
+                    entity.Tags = tagEntities;
+                }
+                else
+                {
+                    // If model.Tags is null, clear all tags
+                    entity.Tags.Clear();
+                }
+
                 await _context.SaveChangesAsync();
             }, $"Failed to update Document with ID {model.Id}.");
         }

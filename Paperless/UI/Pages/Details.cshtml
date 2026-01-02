@@ -92,6 +92,13 @@
                              </style>
                         </div>
                     </div>
+
+                    <div class="mb-4">
+                        <label class="text-muted block mb-2">Summary</label>
+                        <div id="docSummary" class="form-control" style="background: transparent; border: none; padding-left: 0; min-height: 60px; color: var(--text-primary); line-height: 1.6;">
+                            <span class="text-muted">No summary available yet. Summary will be generated automatically after OCR processing.</span>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- OCR Content -->
@@ -150,6 +157,14 @@
             document.getElementById('docTitle').innerText = doc.fileName;
             document.getElementById('docDate').innerText = new Date(doc.uploadedAt).toLocaleString();
             document.getElementById('ocrText').innerText = doc.ocrText || 'No OCR text available.';
+            
+            // Display summary
+            const summaryEl = document.getElementById('docSummary');
+            if (doc.summary && doc.summary.trim()) {
+                summaryEl.innerHTML = `<p style="margin: 0;">${doc.summary}</p>`;
+            } else {
+                summaryEl.innerHTML = '<span class="text-muted">No summary available yet. Summary will be generated automatically after OCR processing.</span>';
+            }
             
             renderTags(doc.tags || []);
             

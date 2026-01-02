@@ -12,7 +12,7 @@ namespace OcrWorker;
 public class Worker(
     ILogger<Worker> logger,
     IMessageConsumer consumer,
-    IDocumentMessageProducer producer,
+    OcrWorker.Messaging.IDocumentMessageProducerFactory producerFactory,
     IServiceProvider serviceProvider)
     : BackgroundService
 {
@@ -70,7 +70,14 @@ public class Worker(
                     logger.LogInformation("Database updated for document {id}", msg.DocumentId);
 
                     // Publish to Indexing
-                    await producer.PublishDocumentAsync(msg); // Reusing msg as it has ID.
+                    var indexingProducer = producerFactory.GetIndexingProducer();
+                    await indexingProducer.PublishDocumentAsync(msg);
+                    logger.LogInformation("Published document {id} to indexing queue", msg.DocumentId);
+
+                    // Publish to GenAI for summary generation
+                    var genaiProducer = producerFactory.GetGenaiProducer();
+                    await genaiProducer.PublishDocumentAsync(msg);
+                    logger.LogInformation("Published document {id} to genai queue", msg.DocumentId);
                 }
                 else
                 {
