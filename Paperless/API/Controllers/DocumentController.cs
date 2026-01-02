@@ -68,14 +68,14 @@ public class DocumentController(DocumentService service, IStorageService storage
             DocumentDto? document = await service.GetDocumentByIdAsync(id);
             if (document == null)
             {
-                 log.Warn($"DocumentController: Document {id} not found for download.");
-                 return NotFound();
+                log.Warn($"DocumentController: Document {id} not found for download.");
+                return NotFound();
             }
 
             if (string.IsNullOrEmpty(document.FilePath))
             {
-                 log.Warn($"DocumentController: Document {id} has no file path.");
-                 return NotFound("File path is missing.");
+                log.Warn($"DocumentController: Document {id} has no file path.");
+                return NotFound("File path is missing.");
             }
 
             Stream stream = await storageService.GetFileAsync(document.FilePath);
@@ -131,22 +131,22 @@ public class DocumentController(DocumentService service, IStorageService storage
                 UploadedAt = DateTime.UtcNow,
                 Tags = new List<Tag>() // Handle tags if provided
             };
-            
+
             if (uploadDto.Tags != null && uploadDto.Tags.Any())
             {
-                 // In a real app, you might want to fetch existing tags or create new ones here.
-                 // For now, we'll map string tags to Tag entities if possible or let Service handle it.
-                 // Since DocumentService.AddDocumentAsync takes a Document, we'll let it be.
-                 // Simplified: Just add them as new Tag objects for now.
-                 foreach(string tag in uploadDto.Tags)
-                 {
-                     document.Tags.Add(new Tag { Name = tag });
-                 }
+                // In a real app, you might want to fetch existing tags or create new ones here.
+                // For now, we'll map string tags to Tag entities if possible or let Service handle it.
+                // Since DocumentService.AddDocumentAsync takes a Document, we'll let it be.
+                // Simplified: Just add them as new Tag objects for now.
+                foreach (string tag in uploadDto.Tags)
+                {
+                    document.Tags.Add(new Tag { Name = tag });
+                }
             }
 
             // 3. Save to DB (and publish RabbitMQ message)
             DocumentDto created = await service.AddDocumentAsync(document);
-            
+
             log.Info($"DocumentController: Document created with id={created.Id}");
             return CreatedAtAction(nameof(GetById), new { id = created.Id }, mapper.Map<DocumentDto>(created));
         }
@@ -237,8 +237,8 @@ public class DocumentController(DocumentService service, IStorageService storage
         }
         catch (Exception ex)
         {
-             log.Error($"DocumentController: Error adding tag to id={id}", ex);
-             return StatusCode(500, ex.Message);
+            log.Error($"DocumentController: Error adding tag to id={id}", ex);
+            return StatusCode(500, ex.Message);
         }
     }
 
@@ -253,8 +253,8 @@ public class DocumentController(DocumentService service, IStorageService storage
         }
         catch (Exception ex)
         {
-             log.Error($"DocumentController: Error removing tag from id={id}", ex);
-             return StatusCode(500, ex.Message);
+            log.Error($"DocumentController: Error removing tag from id={id}", ex);
+            return StatusCode(500, ex.Message);
         }
     }
 }

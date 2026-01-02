@@ -22,7 +22,7 @@ namespace Tests.Integration.Repositories
                 .Options;
 
             _context = new PaperlessDBContext(options);
-            
+
             var config = new MapperConfiguration(cfg => cfg.AddProfile<DalMappingProfile>());
             _mapper = config.CreateMapper();
 

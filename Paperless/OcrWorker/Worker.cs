@@ -62,7 +62,7 @@ public class Worker(
 
                 // Update Database
                 var doc = await repo.GetByIdAsync(msg.DocumentId);
-                
+
                 if (doc != null)
                 {
                     doc.OcrText = text;

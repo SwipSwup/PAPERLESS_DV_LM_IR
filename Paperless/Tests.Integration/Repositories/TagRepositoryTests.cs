@@ -22,7 +22,7 @@ namespace Tests.Integration.Repositories
                 .Options;
 
             _context = new PaperlessDBContext(options);
-            
+
             var config = new MapperConfiguration(cfg => cfg.AddProfile<DalMappingProfile>());
             _mapper = config.CreateMapper();
 
@@ -52,7 +52,7 @@ namespace Tests.Integration.Repositories
             result!.Name.Should().Be("Existing Tag");
         }
 
-         [Fact]
+        [Fact]
         public async Task SearchTagsAsync_ShouldReturnMatches()
         {
             _context.Tags.Add(new DAL.Models.TagEntity { Name = "Invoice 2023" });

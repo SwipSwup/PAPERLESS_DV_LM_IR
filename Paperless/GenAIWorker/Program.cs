@@ -34,7 +34,7 @@ builder.Services.AddScoped<IDocumentRepository, DocumentRepository>();
 // Messaging
 builder.Services.AddSingleton<IMessageConsumer, MessageConsumer>();
 
-builder.Services.AddSingleton<IDocumentMessageProducer>(sp => 
+builder.Services.AddSingleton<IDocumentMessageProducer>(sp =>
 {
     var settings = sp.GetRequiredService<IOptions<RabbitMqSettings>>().Value;
     var producerSettings = new RabbitMqSettings

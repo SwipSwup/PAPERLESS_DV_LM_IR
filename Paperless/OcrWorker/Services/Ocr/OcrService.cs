@@ -9,7 +9,7 @@ public class OcrService(ITesseractCliRunner tesseract, IPdfConverter pdfConverte
     {
         logger.LogInformation("Converting PDF to Image bytes...");
         List<byte[]> pages = await pdfConverter.ConvertToPngBytesAsync(pdfPath, ct);
-        
+
         System.Text.StringBuilder fullText = new System.Text.StringBuilder();
 
         for (int i = 0; i < pages.Count; i++)

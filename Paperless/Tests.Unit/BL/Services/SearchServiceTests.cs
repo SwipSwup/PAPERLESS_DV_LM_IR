@@ -30,7 +30,7 @@ namespace Tests.Unit.BL.Services
             // Setting properties on response might be hard due to internal setters.
             // If we can't set Documents, checking flow might be tricky.
             // Just verifying the call was made is partial validation.
-            
+
             // However, to return a valid response with documents, we might need a specific setup.
             // If mocking proves too hard due to closed API, we'll test error handling primarily.
 
@@ -41,9 +41,9 @@ namespace Tests.Unit.BL.Services
             // Actually, we can just test the FAILURE case which is easy to mock (throw exception)
             // AND we can try to test success if we can instantiate response.
             // For now, let's verify error handling logic which covers the "catch" block.
-            
-             mockClient.Setup(x => x.SearchAsync<DocumentDto>(It.IsAny<Action<SearchRequestDescriptor<DocumentDto>>>(), It.IsAny<CancellationToken>()))
-                .ThrowsAsync(new Exception("Simulated connection failure"));
+
+            mockClient.Setup(x => x.SearchAsync<DocumentDto>(It.IsAny<Action<SearchRequestDescriptor<DocumentDto>>>(), It.IsAny<CancellationToken>()))
+               .ThrowsAsync(new Exception("Simulated connection failure"));
 
             var service = new SearchService(mockClient.Object, _mockLogger.Object);
 
@@ -52,14 +52,14 @@ namespace Tests.Unit.BL.Services
 
             // Assert
             result.Should().BeEmpty();
-             _mockLogger.Verify(
-                x => x.Log(
-                    LogLevel.Error,
-                    It.IsAny<EventId>(),
-                    It.Is<It.IsAnyType>((o, t) => true),
-                    It.IsAny<Exception>(),
-                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-                Times.AtLeastOnce);
+            _mockLogger.Verify(
+               x => x.Log(
+                   LogLevel.Error,
+                   It.IsAny<EventId>(),
+                   It.Is<It.IsAnyType>((o, t) => true),
+                   It.IsAny<Exception>(),
+                   It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+               Times.AtLeastOnce);
         }
     }
 }

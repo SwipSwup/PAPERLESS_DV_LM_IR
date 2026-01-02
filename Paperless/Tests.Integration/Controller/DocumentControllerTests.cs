@@ -18,7 +18,7 @@ namespace Tests.Integration.Controller
         [Fact]
         public async Task GetDocuments_ShouldReturnList()
         {
-             // Act
+            // Act
             var response = await _client.GetAsync("/api/document");
 
             // Assert
@@ -32,7 +32,7 @@ namespace Tests.Integration.Controller
         [Fact]
         public async Task CreateDocument_ShouldReturnCreated_WhenFileIsUploaded()
         {
-             // Arrange
+            // Arrange
             var content = new MultipartFormDataContent();
             var fileContent = new ByteArrayContent(new byte[] { 1, 2, 3, 4 });
             content.Add(fileContent, "File", "test.pdf");
@@ -55,7 +55,7 @@ namespace Tests.Integration.Controller
             content.Add(new ByteArrayContent(new byte[] { 1 }), "File", "get_test.pdf");
             var createResponse = await _client.PostAsync("/api/document", content);
             var createdDoc = await createResponse.Content.ReadFromJsonAsync<DocumentDto>();
-            
+
             // Act
             var response = await _client.GetAsync($"/api/document/{createdDoc!.Id}");
 
@@ -79,7 +79,7 @@ namespace Tests.Integration.Controller
 
             // Assert
             response.StatusCode.Should().Be(HttpStatusCode.NoContent);
-            
+
             // Verify it's gone
             var getResponse = await _client.GetAsync($"/api/document/{createdDoc.Id}");
             getResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
@@ -101,7 +101,7 @@ namespace Tests.Integration.Controller
 
             // Assert
             response.StatusCode.Should().Be(HttpStatusCode.NoContent);
-            
+
             var getResponse = await _client.GetAsync($"/api/document/{doc.Id}");
             var updated = await getResponse.Content.ReadFromJsonAsync<DocumentDto>();
             updated!.FileName.Should().Be("Updated Name.pdf");

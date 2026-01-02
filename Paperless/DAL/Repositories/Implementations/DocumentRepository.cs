@@ -80,11 +80,11 @@ namespace DAL.Repositories.Implementations
                 if (model.Tags != null)
                 {
                     var tagEntities = new List<TagEntity>();
-                    
+
                     foreach (var tag in model.Tags)
                     {
                         TagEntity? tagEntity;
-                        
+
                         if (tag.Id > 0)
                         {
                             // Tag has an ID, try to find it
@@ -101,7 +101,7 @@ namespace DAL.Repositories.Implementations
                             tagEntity = await _context.Tags
                                 .FirstOrDefaultAsync(t => t.Name.ToLower() == tag.Name.ToLower());
                         }
-                        
+
                         if (tagEntity == null)
                         {
                             // Create new tag
@@ -122,10 +122,10 @@ namespace DAL.Repositories.Implementations
                                 log.Info($"Updated tag '{tag.Name}' color to {tag.Color}");
                             }
                         }
-                        
+
                         tagEntities.Add(tagEntity);
                     }
-                    
+
                     // Replace the tags collection
                     entity.Tags = tagEntities;
                 }

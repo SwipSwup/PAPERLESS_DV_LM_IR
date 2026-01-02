@@ -23,7 +23,7 @@ namespace GenAIWorker
                 try
                 {
                     logger.LogInformation("Starting GenAI worker consumer...");
-                    
+
                     await consumer.ConsumeAsync<DocumentMessageDto>(
                         queueName: "genai",
                         onMessage: OnMessage,
@@ -70,7 +70,7 @@ namespace GenAIWorker
                     // Generate summary if it doesn't exist
                     if (string.IsNullOrWhiteSpace(doc.Summary))
                     {
-                        logger.LogInformation("Generating summary for document {id} with OCR text length {length}", 
+                        logger.LogInformation("Generating summary for document {id} with OCR text length {length}",
                             msg.DocumentId, doc.OcrText.Length);
 
                         try
@@ -82,7 +82,7 @@ namespace GenAIWorker
                         }
                         catch (ServiceException ex)
                         {
-                            logger.LogError(ex, "Failed to generate summary for document {id}: {message}", 
+                            logger.LogError(ex, "Failed to generate summary for document {id}: {message}",
                                 msg.DocumentId, ex.Message);
                             throw; // Re-throw to trigger nack
                         }
@@ -95,11 +95,11 @@ namespace GenAIWorker
                     // Generate tags if document has no tags or only a few tags
                     // We'll generate tags even if some exist, but only add new ones
                     logger.LogInformation("Generating tags for document {id}", msg.DocumentId);
-                    
+
                     try
                     {
                         var generatedTags = await genAIService.GenerateTagsAsync(doc.OcrText, ct);
-                        
+
                         if (generatedTags != null && generatedTags.Any())
                         {
                             // Ensure Tags list is initialized
@@ -116,12 +116,12 @@ namespace GenAIWorker
                                 {
                                     doc.Tags.Add(newTag);
                                     addedCount++;
-                                    logger.LogInformation("Added tag '{tagName}' with color {color} to document {id}", 
+                                    logger.LogInformation("Added tag '{tagName}' with color {color} to document {id}",
                                         newTag.Name, newTag.Color, msg.DocumentId);
                                 }
                                 else
                                 {
-                                    logger.LogInformation("Tag '{tagName}' already exists on document {id}, skipping", 
+                                    logger.LogInformation("Tag '{tagName}' already exists on document {id}, skipping",
                                         newTag.Name, msg.DocumentId);
                                 }
                             }
@@ -129,7 +129,7 @@ namespace GenAIWorker
                             if (addedCount > 0)
                             {
                                 needsUpdate = true;
-                                logger.LogInformation("Successfully added {count} new tags to document {id}", 
+                                logger.LogInformation("Successfully added {count} new tags to document {id}",
                                     addedCount, msg.DocumentId);
                             }
                             else
@@ -140,7 +140,7 @@ namespace GenAIWorker
                     }
                     catch (ServiceException ex)
                     {
-                        logger.LogError(ex, "Failed to generate tags for document {id}: {message}", 
+                        logger.LogError(ex, "Failed to generate tags for document {id}: {message}",
                             msg.DocumentId, ex.Message);
                         // Don't throw - tag generation failure shouldn't prevent summary from being saved
                         // But if summary was generated, we should still save it

@@ -36,7 +36,7 @@ namespace Tests.Unit.BL.Services
             var tag = new Tag { Id = 1, Name = "Test" };
             _mockRepo.Setup(x => x.GetByIdAsync(1)).ReturnsAsync(tag);
             var result = await _service.GetTagByIdAsync(1);
-            Assert.AreEqual(tag, result);
+            Assert.That(result, Is.EqualTo(tag));
         }
 
         [Test]

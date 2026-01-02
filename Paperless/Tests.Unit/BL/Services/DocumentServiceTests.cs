@@ -213,7 +213,7 @@ public class DocumentServiceTests
         await _documentService.AddLogToDocumentAsync(documentId, action, details);
 
         // Assert
-        _mockDocumentLogRepo.Verify(x => x.AddAsync(It.Is<DocumentLog>(log => 
+        _mockDocumentLogRepo.Verify(x => x.AddAsync(It.Is<DocumentLog>(log =>
             log.Id == documentId && log.Action == action && log.Details == details)), Times.Once);
     }
 }

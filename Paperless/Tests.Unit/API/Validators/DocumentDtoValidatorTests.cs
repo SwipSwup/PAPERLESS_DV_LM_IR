@@ -33,7 +33,7 @@ namespace Tests.Unit.API.Validators
             var result = _validator.TestValidate(dto);
             result.ShouldNotHaveValidationErrorFor(x => x.FileName);
         }
-        
+
         [Test]
         public void ShouldHaveError_WhenFileNameIsTooLong()
         {

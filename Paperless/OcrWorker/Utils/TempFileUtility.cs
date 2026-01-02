@@ -17,7 +17,7 @@ public class TempFileUtility(ILogger<TempFileUtility> logger) : ITempFileUtility
         logger.LogDebug("Created temp directory {path}", fullPath);
         return fullPath;
     }
-    
+
     public string CreateTempFile(string directory, string extension)
     {
         if (!Directory.Exists(directory))
@@ -32,7 +32,7 @@ public class TempFileUtility(ILogger<TempFileUtility> logger) : ITempFileUtility
         logger.LogDebug("Created temp file {path}", filePath);
         return filePath;
     }
-    
+
     public async Task DeleteDirectoryAsync(string directory)
     {
         try

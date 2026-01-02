@@ -12,12 +12,12 @@ namespace Tests.Unit.DAL.Services
         public void Constructor_ShouldInitializeWithValidSettings()
         {
             // Arrange
-            var settings = new MinioSettings 
-            { 
-                Endpoint = "localhost:9000", 
-                AccessKey = "minio", 
-                SecretKey = "minio123", 
-                BucketName = "paperless-test" 
+            var settings = new MinioSettings
+            {
+                Endpoint = "localhost:9000",
+                AccessKey = "minio",
+                SecretKey = "minio123",
+                BucketName = "paperless-test"
             };
 
             // Act & Assert
@@ -29,10 +29,10 @@ namespace Tests.Unit.DAL.Services
         [Test]
         public void Constructor_ShouldThrow_WhenSettingsAreNull()
         {
-             // If validation existed we'd test it here. 
-             // Assuming basic instantiation works.
-             // We can't easily test Upload/metric logic without mocks or real integration.
-             // So we stop here to satisfy "Add Test" requirement without breaking encapsulation.
+            // If validation existed we'd test it here. 
+            // Assuming basic instantiation works.
+            // We can't easily test Upload/metric logic without mocks or real integration.
+            // So we stop here to satisfy "Add Test" requirement without breaking encapsulation.
         }
     }
 }

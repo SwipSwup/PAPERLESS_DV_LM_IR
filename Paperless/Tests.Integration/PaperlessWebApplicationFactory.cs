@@ -29,18 +29,18 @@ namespace Tests.Integration
                 // Remove existing IStorageService
                 var storageDescriptor = services.SingleOrDefault(d => d.ServiceType == typeof(Core.Interfaces.IStorageService));
                 if (storageDescriptor != null) services.Remove(storageDescriptor);
-                
+
                 // Remove existing IDocumentMessageProducer
                 var producerDescriptor = services.SingleOrDefault(d => d.ServiceType == typeof(Core.Messaging.IDocumentMessageProducer));
                 if (producerDescriptor != null) services.Remove(producerDescriptor);
 
                 // Add Mocks
-                services.AddScoped<Core.Interfaces.IStorageService>(sp => 
+                services.AddScoped<Core.Interfaces.IStorageService>(sp =>
                 {
                     var mock = new Moq.Mock<Core.Interfaces.IStorageService>();
                     mock.Setup(x => x.UploadFileAsync(Moq.It.IsAny<System.IO.Stream>(), Moq.It.IsAny<string>(), Moq.It.IsAny<string>()))
                         .Returns(Task.FromResult("mock/path/file.pdf"));
-                    return mock.Object; 
+                    return mock.Object;
                 });
 
                 services.AddScoped<Core.Messaging.IDocumentMessageProducer>(sp =>

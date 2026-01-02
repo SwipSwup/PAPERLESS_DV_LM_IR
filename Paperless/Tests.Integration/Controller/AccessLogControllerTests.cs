@@ -23,7 +23,7 @@ namespace Tests.Integration.Controller
             var logs = await response.Content.ReadFromJsonAsync<List<AccessLogDto>>();
             logs.Should().NotBeNull();
         }
-        
+
         // Add more tests if controller has other endpoints like GetByDocumentId
     }
 }

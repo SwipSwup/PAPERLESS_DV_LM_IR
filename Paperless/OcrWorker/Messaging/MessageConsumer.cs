@@ -30,7 +30,7 @@ namespace OcrWorker.Messaging
 
             string consumerTag = await _channel!.BasicConsumeAsync(
                 queue: queueName,
-                autoAck: false, 
+                autoAck: false,
                 consumer: _consumer,
                 cancellationToken: ct);
 
@@ -54,7 +54,7 @@ namespace OcrWorker.Messaging
             };
 
             _connection = await factory.CreateConnectionAsync();
-            _connection.ConnectionShutdownAsync += async (o, e) => 
+            _connection.ConnectionShutdownAsync += async (o, e) =>
                 logger.LogWarning("RabbitMQ Connection Shutdown: {Reason}", e.ReplyText);
 
             _channel = await _connection.CreateChannelAsync();
@@ -78,20 +78,20 @@ namespace OcrWorker.Messaging
 
         // Inner class implementation
         private class OcrConsumer<T>(
-            IChannel channel, 
-            ILogger logger, 
+            IChannel channel,
+            ILogger logger,
             Func<T, ulong, CancellationToken, Task> onMessage,
             CancellationToken appToken) : IAsyncBasicConsumer
         {
             public IChannel Channel => channel;
 
             public async Task HandleBasicDeliverAsync(
-                string consumerTag, 
-                ulong deliveryTag, 
-                bool redelivered, 
-                string exchange, 
-                string routingKey, 
-                IReadOnlyBasicProperties properties, 
+                string consumerTag,
+                ulong deliveryTag,
+                bool redelivered,
+                string exchange,
+                string routingKey,
+                IReadOnlyBasicProperties properties,
                 ReadOnlyMemory<byte> body,
                 CancellationToken cancellationToken)
             {
@@ -103,7 +103,7 @@ namespace OcrWorker.Messaging
                     logger.LogDebug("Message Body: {Body}", json);
 
                     T? message = JsonSerializer.Deserialize<T>(json);
-                    
+
                     if (message == null)
                     {
                         logger.LogWarning("Received null message - Nacking");

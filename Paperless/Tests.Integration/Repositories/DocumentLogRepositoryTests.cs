@@ -22,7 +22,7 @@ namespace Tests.Integration.Repositories
                 .Options;
 
             _context = new PaperlessDBContext(options);
-            
+
             var config = new MapperConfiguration(cfg => cfg.AddProfile<DalMappingProfile>());
             _mapper = config.CreateMapper();
 
@@ -32,7 +32,7 @@ namespace Tests.Integration.Repositories
         [Fact]
         public async Task GetAllAsync_ShouldReturnLogs()
         {
-             // Seed parent doc
+            // Seed parent doc
             var doc = new DAL.Models.DocumentEntity { FileName = "Parent", FilePath = "p", UploadedAt = DateTime.UtcNow };
             _context.Documents.Add(doc);
             await _context.SaveChangesAsync();
@@ -49,17 +49,17 @@ namespace Tests.Integration.Repositories
         [Fact]
         public async Task GetByDocumentIdAsync_ShouldReturnLogs()
         {
-             var doc = new DAL.Models.DocumentEntity { FileName = "DocForLog2", FilePath = "p", UploadedAt = DateTime.UtcNow };
-             _context.Documents.Add(doc);
-             await _context.SaveChangesAsync();
+            var doc = new DAL.Models.DocumentEntity { FileName = "DocForLog2", FilePath = "p", UploadedAt = DateTime.UtcNow };
+            _context.Documents.Add(doc);
+            await _context.SaveChangesAsync();
 
-             var log = new DAL.Models.DocumentLogEntity { Timestamp = DateTime.UtcNow, Action = "LogAction", DocumentId = doc.Id, DocumentEntity = doc };
-             _context.DocumentLogs.Add(log);
-             await _context.SaveChangesAsync();
+            var log = new DAL.Models.DocumentLogEntity { Timestamp = DateTime.UtcNow, Action = "LogAction", DocumentId = doc.Id, DocumentEntity = doc };
+            _context.DocumentLogs.Add(log);
+            await _context.SaveChangesAsync();
 
-             var result = await _repository.GetByDocumentIdAsync(doc.Id);
-             result.Should().HaveCount(1);
-             result.First().Action.Should().Be("LogAction");
+            var result = await _repository.GetByDocumentIdAsync(doc.Id);
+            result.Should().HaveCount(1);
+            result.First().Action.Should().Be("LogAction");
         }
     }
 }

@@ -30,7 +30,7 @@ namespace Tests.Integration.Controller
             var tag = new TagDto { Name = "NewTag" };
             var response = await _client.PostAsJsonAsync("/api/Tag", tag);
             response.StatusCode.Should().Be(HttpStatusCode.Created);
-            
+
             var created = await response.Content.ReadFromJsonAsync<TagDto>();
             created.Should().NotBeNull();
             created!.Name.Should().Be("NewTag");

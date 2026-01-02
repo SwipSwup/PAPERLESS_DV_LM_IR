@@ -42,7 +42,7 @@ public class StorageWrapper : IStorageWrapper
         // temp folder for this document
         string tempDir = _tmpUtility.CreateTempDirectory("minio");
         string tempFile = _tmpUtility.CreateTempFile(tempDir, Path.GetExtension(objectName).TrimStart('.'));
-        
+
         try
         {
             //await EnsureBucketExistsAsync(ct);
@@ -101,7 +101,7 @@ public class StorageWrapper : IStorageWrapper
             );
 
             using MemoryStream stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(textContent));
-            
+
             PutObjectArgs args = new PutObjectArgs()
                 .WithBucket(_settings.BucketName)
                 .WithObject(objectName)

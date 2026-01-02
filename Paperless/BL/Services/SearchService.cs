@@ -45,7 +45,7 @@ namespace BL.Services
                     logger.LogError("Search query failed: {Debug}", response.DebugInformation);
                     return Enumerable.Empty<DocumentDto>();
                 }
-                
+
                 // Log success debug info to check what query was actually sent
                 logger.LogInformation("Search Debug: {Debug}", response.DebugInformation);
 

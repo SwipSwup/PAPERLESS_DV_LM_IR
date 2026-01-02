@@ -32,7 +32,7 @@ namespace API.Middleware
         private static Task HandleExceptionAsync(HttpContext context, Exception exception)
         {
             context.Response.ContentType = "application/json";
-            
+
             var response = new
             {
                 error = exception.Message,

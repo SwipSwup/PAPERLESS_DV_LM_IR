@@ -17,8 +17,8 @@ namespace DAL.Services
         public MinioStorageService(MinioSettings settings)
         {
             _bucketName = settings.BucketName;
-            
-            try 
+
+            try
             {
                 log.Info($"MinioStorageService: Initializing connection to {settings.Endpoint}");
                 _minioClient = new MinioClient()
@@ -28,7 +28,7 @@ namespace DAL.Services
             }
             catch (Exception ex)
             {
-                 throw new ServiceException("Failed to initialize MinIO client.", ex);
+                throw new ServiceException("Failed to initialize MinIO client.", ex);
             }
         }
 
@@ -57,7 +57,7 @@ namespace DAL.Services
             try
             {
                 log.Info($"MinioStorageService: Uploading '{fileName}' to bucket '{_bucketName}'");
-                
+
                 // Reset stream position if needed
                 if (fileStream.Position > 0)
                     fileStream.Position = 0;
@@ -70,26 +70,26 @@ namespace DAL.Services
                     .WithContentType(contentType);
 
                 await _minioClient.PutObjectAsync(putObjectArgs);
-                
+
                 log.Info($"MinioStorageService: Uploaded '{fileName}' successfully.");
-                
+
                 // Return the object name (or path)
-                return fileName; 
+                return fileName;
             }
             catch (Exception ex)
             {
-                 throw new ServiceException($"Failed to upload file '{fileName}' to MinIO.", ex);
+                throw new ServiceException($"Failed to upload file '{fileName}' to MinIO.", ex);
             }
         }
 
         public async Task<Stream> GetFileAsync(string filePath)
         {
             await EnsureBucketExistsAsync();
-            
+
             log.Info($"MinioStorageService: Retrieving '{filePath}' from bucket '{_bucketName}'");
-            
+
             var memoryStream = new MemoryStream();
-            
+
             try
             {
                 var args = new GetObjectArgs()
@@ -112,22 +112,22 @@ namespace DAL.Services
 
         public async Task DeleteFileAsync(string filePath)
         {
-             await EnsureBucketExistsAsync();
-             log.Info($"MinioStorageService: Deleting '{filePath}' from bucket '{_bucketName}'");
+            await EnsureBucketExistsAsync();
+            log.Info($"MinioStorageService: Deleting '{filePath}' from bucket '{_bucketName}'");
 
-             try
-             {
-                 var args = new RemoveObjectArgs()
-                     .WithBucket(_bucketName)
-                     .WithObject(filePath);
+            try
+            {
+                var args = new RemoveObjectArgs()
+                    .WithBucket(_bucketName)
+                    .WithObject(filePath);
 
-                 await _minioClient.RemoveObjectAsync(args);
-                 log.Info($"MinioStorageService: Deleted '{filePath}' successfully.");
-             }
-             catch (Exception ex)
-             {
-                 throw new ServiceException($"Failed to delete file '{filePath}' from MinIO.", ex);
-             }
+                await _minioClient.RemoveObjectAsync(args);
+                log.Info($"MinioStorageService: Deleted '{filePath}' successfully.");
+            }
+            catch (Exception ex)
+            {
+                throw new ServiceException($"Failed to delete file '{filePath}' from MinIO.", ex);
+            }
         }
     }
 }

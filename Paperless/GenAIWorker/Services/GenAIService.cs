@@ -43,7 +43,7 @@ namespace GenAIWorker.Services
 
                 // Truncate text if too long (Gemini has token limits)
                 const int maxTextLength = 30000;
-                string processedText = text.Length > maxTextLength 
+                string processedText = text.Length > maxTextLength
                     ? text.Substring(0, maxTextLength) + "... [truncated]"
                     : text;
 
@@ -85,9 +85,9 @@ namespace GenAIWorker.Services
                                 {
                                     var modelName = name.GetString();
                                     _logger.LogInformation("Found available model: {model}", modelName);
-                                    
+
                                     // Look for a flash or pro model that supports generateContent
-                                    if (modelName != null && 
+                                    if (modelName != null &&
                                         (modelName.Contains("flash") || modelName.Contains("pro")) &&
                                         modelName.Contains("gemini"))
                                     {
@@ -119,9 +119,9 @@ namespace GenAIWorker.Services
                 // Use available model or fall back to configured model
                 string modelToUse = availableModel ?? _settings.Model;
                 string baseUrl = "https://generativelanguage.googleapis.com/v1beta";
-                
+
                 var url = $"{baseUrl}/models/{modelToUse}:generateContent?key={_settings.ApiKey}";
-                
+
                 _logger.LogInformation("Calling Gemini API with model {model} at {baseUrl}", modelToUse, baseUrl);
 
                 var response = await _httpClient.PostAsJsonAsync(url, requestBody, cancellationToken);
@@ -129,14 +129,14 @@ namespace GenAIWorker.Services
                 if (!response.IsSuccessStatusCode)
                 {
                     var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
-                    _logger.LogError("Gemini API returned error: {statusCode} - {error}", 
+                    _logger.LogError("Gemini API returned error: {statusCode} - {error}",
                         response.StatusCode, errorContent);
                     throw new ServiceException($"Failed to generate summary: {response.StatusCode} - {errorContent}");
                 }
 
                 var jsonResponse = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: cancellationToken);
-                
-                if (jsonResponse.TryGetProperty("candidates", out var candidates) && 
+
+                if (jsonResponse.TryGetProperty("candidates", out var candidates) &&
                     candidates.GetArrayLength() > 0)
                 {
                     var firstCandidate = candidates[0];
@@ -145,7 +145,7 @@ namespace GenAIWorker.Services
                         parts.GetArrayLength() > 0)
                     {
                         var summary = parts[0].GetProperty("text").GetString();
-                        
+
                         if (string.IsNullOrWhiteSpace(summary))
                         {
                             _logger.LogWarning("Received empty summary from Gemini API");
@@ -202,7 +202,7 @@ namespace GenAIWorker.Services
 
                 // Truncate text if too long (Gemini has token limits)
                 const int maxTextLength = 30000;
-                string processedText = text.Length > maxTextLength 
+                string processedText = text.Length > maxTextLength
                     ? text.Substring(0, maxTextLength) + "... [truncated]"
                     : text;
 
@@ -247,7 +247,7 @@ namespace GenAIWorker.Services
                                 if (model.TryGetProperty("name", out var name))
                                 {
                                     var modelName = name.GetString();
-                                    if (modelName != null && 
+                                    if (modelName != null &&
                                         (modelName.Contains("flash") || modelName.Contains("pro")) &&
                                         modelName.Contains("gemini"))
                                     {
@@ -276,9 +276,9 @@ namespace GenAIWorker.Services
 
                 string modelToUse = availableModel ?? _settings.Model;
                 string baseUrl = "https://generativelanguage.googleapis.com/v1beta";
-                
+
                 var url = $"{baseUrl}/models/{modelToUse}:generateContent?key={_settings.ApiKey}";
-                
+
                 _logger.LogInformation("Calling Gemini API for tag generation with model {model}", modelToUse);
 
                 var response = await _httpClient.PostAsJsonAsync(url, requestBody, cancellationToken);
@@ -286,14 +286,14 @@ namespace GenAIWorker.Services
                 if (!response.IsSuccessStatusCode)
                 {
                     var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
-                    _logger.LogError("Gemini API returned error for tag generation: {statusCode} - {error}", 
+                    _logger.LogError("Gemini API returned error for tag generation: {statusCode} - {error}",
                         response.StatusCode, errorContent);
                     throw new ServiceException($"Failed to generate tags: {response.StatusCode} - {errorContent}");
                 }
 
                 var jsonResponse = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: cancellationToken);
-                
-                if (jsonResponse.TryGetProperty("candidates", out var candidates) && 
+
+                if (jsonResponse.TryGetProperty("candidates", out var candidates) &&
                     candidates.GetArrayLength() > 0)
                 {
                     var firstCandidate = candidates[0];
@@ -302,7 +302,7 @@ namespace GenAIWorker.Services
                         parts.GetArrayLength() > 0)
                     {
                         var tagsText = parts[0].GetProperty("text").GetString();
-                        
+
                         if (string.IsNullOrWhiteSpace(tagsText))
                         {
                             _logger.LogWarning("Received empty tags from Gemini API");
@@ -311,10 +311,10 @@ namespace GenAIWorker.Services
 
                         // Parse tags from response (one per line)
                         var tags = ParseTagsFromResponse(tagsText);
-                        
+
                         // Assign colors to tags
                         var tagsWithColors = AssignColorsToTags(tags);
-                        
+
                         _logger.LogInformation("Successfully generated {count} tags", tagsWithColors.Count);
                         return tagsWithColors;
                     }
@@ -349,20 +349,20 @@ namespace GenAIWorker.Services
         {
             var tags = new List<string>();
             var lines = response.Split(new[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
-            
+
             foreach (var line in lines)
             {
                 var trimmed = line.Trim();
                 // Remove common prefixes like "- ", "• ", numbers, etc.
                 trimmed = System.Text.RegularExpressions.Regex.Replace(trimmed, @"^[-•\d.\s]+", "");
                 trimmed = trimmed.Trim();
-                
+
                 if (!string.IsNullOrWhiteSpace(trimmed) && trimmed.Length <= 100) // Max tag name length
                 {
                     tags.Add(trimmed);
                 }
             }
-            
+
             return tags;
         }
 
@@ -387,18 +387,18 @@ namespace GenAIWorker.Services
 
             var random = new Random();
             var tags = new List<Tag>();
-            
+
             foreach (var tagName in tagNames)
             {
                 // Assign a random color to each tag
                 var color = colors[random.Next(colors.Length)];
-                tags.Add(new Tag 
-                { 
-                    Name = tagName, 
-                    Color = color 
+                tags.Add(new Tag
+                {
+                    Name = tagName,
+                    Color = color
                 });
             }
-            
+
             return tags;
         }
     }
