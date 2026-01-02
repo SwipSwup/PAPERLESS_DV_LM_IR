@@ -1,0 +1,27 @@
+name: .NET CI
+
+on:
+  push:
+    branches: [ "main", "master", "develop" ]
+  pull_request:
+    branches: [ "main", "master", "develop" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 8.0.x
+    
+    - name: Restore dependencies
+      run: dotnet restore ./Paperless/Paperless.sln
+
+    - name: Build
+      run: dotnet build ./Paperless/Paperless.sln --no-restore --configuration Release
+
+    - name: Test
+      run: dotnet test ./Paperless/Paperless.sln --no-build --configuration Release --verbosity normal
