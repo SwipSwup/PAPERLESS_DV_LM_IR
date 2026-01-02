@@ -20,8 +20,11 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore ./Paperless/Paperless.sln
 
-    - name: Build
+    - name: Built
       run: dotnet build ./Paperless/Paperless.sln --no-restore --configuration Release
+
+    - name: Lint
+      run: dotnet format ./Paperless/Paperless.sln --verify-no-changes --verbosity diagnostic
 
     - name: Test
       run: dotnet test ./Paperless/Paperless.sln --no-build --configuration Release --verbosity normal
