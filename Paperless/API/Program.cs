@@ -59,6 +59,9 @@ builder.Services.AddSingleton<ElasticsearchClient>(sp =>
 // --------------------
 // Register Messager & Storage
 // --------------------
+// --------------------
+// Register Messager & Storage
+// --------------------
 builder.Services.Configure<RabbitMqSettings>(builder.Configuration.GetSection("RabbitMq"));
 builder.Services.AddSingleton(sp => sp.GetRequiredService<IOptions<RabbitMqSettings>>().Value);
 builder.Services.AddSingleton<IDocumentMessageProducer, RabbitMqProducer>();
