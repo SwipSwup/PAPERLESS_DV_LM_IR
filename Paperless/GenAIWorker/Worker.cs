@@ -2,6 +2,7 @@ using Core.DTOs;
 using Core.Models;
 using Core.Repositories.Interfaces;
 using Core.Exceptions;
+using Core.Messaging;
 using GenAIWorker.Messaging;
 using GenAIWorker.Services;
 
@@ -11,6 +12,7 @@ namespace GenAIWorker
         ILogger<Worker> logger,
         IMessageConsumer consumer,
         IGenAIService genAIService,
+        IDocumentMessageProducer producer,
         IServiceProvider serviceProvider)
         : BackgroundService
     {
@@ -149,6 +151,10 @@ namespace GenAIWorker
                     {
                         await repo.UpdateAsync(doc);
                         logger.LogInformation("Successfully updated document {id}", msg.DocumentId);
+
+                        // Trigger re-indexing so the new summary is searchable
+                        await producer.PublishDocumentAsync(msg);
+                        logger.LogInformation("Triggered re-indexing for document {id}", msg.DocumentId);
                     }
                 }
             }

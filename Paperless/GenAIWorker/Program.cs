@@ -1,4 +1,5 @@
 using GenAIWorker;
+using BL.Messaging;
 using Core.Configuration;
 using GenAIWorker.Messaging;
 using GenAIWorker.Services;
@@ -7,6 +8,8 @@ using DAL.Repositories.Implementations;
 using Core.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using AutoMapper;
+using Core.Messaging;
+using Microsoft.Extensions.Options;
 
 var builder = Host.CreateApplicationBuilder(args);
 
@@ -30,6 +33,20 @@ builder.Services.AddScoped<IDocumentRepository, DocumentRepository>();
 
 // Messaging
 builder.Services.AddSingleton<IMessageConsumer, MessageConsumer>();
+
+builder.Services.AddSingleton<IDocumentMessageProducer>(sp => 
+{
+    var settings = sp.GetRequiredService<IOptions<RabbitMqSettings>>().Value;
+    var producerSettings = new RabbitMqSettings
+    {
+        Host = settings.Host,
+        Port = settings.Port,
+        User = settings.User,
+        Password = settings.Password,
+        QueueName = "indexing"
+    };
+    return new RabbitMqProducer(producerSettings);
+});
 
 // GenAI Service
 builder.Services.AddHttpClient<GenAIService>(client =>

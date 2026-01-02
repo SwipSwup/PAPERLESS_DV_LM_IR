@@ -21,7 +21,7 @@ namespace DAL.Repositories.Implementations
             log.Info("TagRepository.GetAllAsync called");
             return ExecuteRepositoryActionAsync(async () =>
             {
-                List<TagEntity> entities = await _context.Tags.Include(t => t.Documents).ToListAsync();
+                List<TagEntity> entities = await _context.Tags.ToListAsync();
                 return _mapper.Map<List<Tag>>(entities);
             }, "Failed to retrieve all Tags.");
         }
@@ -31,7 +31,7 @@ namespace DAL.Repositories.Implementations
             log.Info($"TagRepository.GetByIdAsync called for ID={id}");
             return ExecuteRepositoryActionAsync(async () =>
             {
-                TagEntity? entity = await _context.Tags.Include(t => t.Documents)
+                TagEntity? entity = await _context.Tags
                     .FirstOrDefaultAsync(t => t.Id == id);
                 return _mapper.Map<Tag?>(entity);
             }, $"Failed to retrieve Tag with ID {id}.");

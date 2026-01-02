@@ -1,5 +1,6 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
+# 
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Core", "Core\Core.csproj", "{C79316EB-F5C3-4727-9F2B-07C7DAF11303}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DAL", "DAL\DAL.csproj", "{84AB7CEB-2A65-4B6D-A876-12CFC9587F07}"
@@ -20,6 +21,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tests.Unit", "Tests.Unit\Tests.Unit.csproj", "{E261BB60-35BE-4E53-ACF4-1A09F5B61C65}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "API", "API\API.csproj", "{B2FE931E-5A14-42C1-83BC-81075D51A8DE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tests.Integration", "Tests.Integration\Tests.Integration.csproj", "{B75B8D98-D2DD-4ED2-9D58-882691DD91D9}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -59,5 +62,9 @@ Global
 		{B2FE931E-5A14-42C1-83BC-81075D51A8DE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B2FE931E-5A14-42C1-83BC-81075D51A8DE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B2FE931E-5A14-42C1-83BC-81075D51A8DE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B75B8D98-D2DD-4ED2-9D58-882691DD91D9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B75B8D98-D2DD-4ED2-9D58-882691DD91D9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B75B8D98-D2DD-4ED2-9D58-882691DD91D9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B75B8D98-D2DD-4ED2-9D58-882691DD91D9}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

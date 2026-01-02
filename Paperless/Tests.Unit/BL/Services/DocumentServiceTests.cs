@@ -3,7 +3,9 @@ using BL.Services;
 using Core.DTOs;
 using Core.Messaging;
 using Core.Models;
+using Core.Models;
 using Core.Repositories.Interfaces;
+using Core.Interfaces;
 using Moq;
 
 namespace Tests.Unit.BL.Services;
@@ -15,6 +17,7 @@ public class DocumentServiceTests
     private Mock<IAccessLogRepository> _mockAccessLogRepo;
     private Mock<IDocumentLogRepository> _mockDocumentLogRepo;
     private Mock<IDocumentMessageProducer> _mockDocumentMessageProducer;
+    private Mock<ISearchService> _mockSearchService;
     private Mock<IMapper> _mockMapper;
     private DocumentService _documentService;
 
@@ -25,13 +28,15 @@ public class DocumentServiceTests
         _mockAccessLogRepo = new Mock<IAccessLogRepository>();
         _mockDocumentLogRepo = new Mock<IDocumentLogRepository>();
         _mockDocumentMessageProducer = new Mock<IDocumentMessageProducer>();
+        _mockSearchService = new Mock<ISearchService>();
         _mockMapper = new Mock<IMapper>();
         _documentService = new DocumentService(
             _mockDocumentRepo.Object,
             _mockAccessLogRepo.Object,
             _mockDocumentLogRepo.Object,
             _mockMapper.Object,
-            _mockDocumentMessageProducer.Object);
+            _mockDocumentMessageProducer.Object,
+            _mockSearchService.Object);
     }
 
     [Test]
@@ -77,6 +82,25 @@ public class DocumentServiceTests
         // Assert
         Assert.That(result, Is.EqualTo(expectedDto));
         _mockDocumentRepo.Verify(x => x.GetByIdAsync(1), Times.Once);
+    }
+
+
+    [Test]
+    public async Task GetDocumentByIdAsync_ShouldReturnNull_WhenNotFound()
+    {
+        _mockDocumentRepo.Setup(x => x.GetByIdAsync(99)).ReturnsAsync((Document?)null);
+        var result = await _documentService.GetDocumentByIdAsync(99);
+        Assert.IsNull(result);
+    }
+
+    [Test]
+    public async Task UpdateDocumentAsync_ShouldNotThrow_WhenNotFound()
+    {
+        var doc = new Document { Id = 99 };
+        _mockDocumentRepo.Setup(x => x.UpdateAsync(doc)).Returns(Task.CompletedTask);
+        // Assuming service doesn't throw if update passes
+        await _documentService.UpdateDocumentAsync(doc);
+        _mockDocumentRepo.Verify(x => x.UpdateAsync(doc), Times.Once);
     }
 
     [Test]
@@ -137,25 +161,21 @@ public class DocumentServiceTests
     {
         // Arrange
         var keyword = "test";
-        var documents = new List<Document>
-        {
-            new() { Id = 1, FileName = "test1.pdf" }
-        };
         var expectedDtos = new List<DocumentDto>
         {
             new() { Id = 1, FileName = "test1.pdf" }
         };
 
-        _mockDocumentRepo.Setup(x => x.SearchDocumentsAsync(keyword)).ReturnsAsync(documents);
-        _mockMapper.Setup(x => x.Map<List<DocumentDto>>(documents)).Returns(expectedDtos);
+        _mockSearchService.Setup(x => x.SearchDocumentsAsync(keyword)).ReturnsAsync(expectedDtos);
 
         // Act
         var result = await _documentService.SearchDocumentsAsync(keyword);
 
         // Assert
         Assert.That(result, Is.EqualTo(expectedDtos));
-        _mockDocumentRepo.Verify(x => x.SearchDocumentsAsync(keyword), Times.Once);
-        _mockMapper.Verify(x => x.Map<List<DocumentDto>>(documents), Times.Once);
+        _mockSearchService.Verify(x => x.SearchDocumentsAsync(keyword), Times.Once);
+        _mockDocumentRepo.Verify(x => x.SearchDocumentsAsync(It.IsAny<string>()), Times.Never);
+        _mockMapper.Verify(x => x.Map<List<DocumentDto>>(It.IsAny<object>()), Times.Never);
     }
 
     [Test]

@@ -147,3 +147,5 @@ app.MapGet("/health", () => Results.Ok("Healthy"));
 // Run App
 // --------------------
 app.Run();
+
+public partial class Program { }

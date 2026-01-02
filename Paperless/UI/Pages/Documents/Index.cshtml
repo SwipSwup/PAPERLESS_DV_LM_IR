@@ -78,7 +78,7 @@
         }
 
         grid.innerHTML = docs.map(doc => `
-             <div class="card d-flex flex-row gap-4 p-0 overflow-hidden" onclick="window.location.href='/Documents/Detail?id=${doc.id}'" style="cursor: pointer; height: 200px; transition: transform 0.2s; align-items: stretch;">
+             <div class="card d-flex flex-row gap-4 p-0 overflow-hidden" onclick="window.location.href='/Details?id=${doc.id}'" style="cursor: pointer; height: 200px; transition: transform 0.2s; align-items: stretch;">
                 
                 <!-- Left: Preview -->
                 <div style="background: #27272a; width: 200px; min-width: 200px; position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden; border-right: 1px solid var(--border-color);">

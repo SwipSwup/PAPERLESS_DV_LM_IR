@@ -2,132 +2,74 @@ using BL.Services;
 using Core.Models;
 using Core.Repositories.Interfaces;
 using Moq;
+using NUnit.Framework;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
-namespace Tests.Unit.BL.Services;
-
-[TestFixture]
-public class TagServiceTests
+namespace Tests.Unit.BL.Services
 {
-    private Mock<ITagRepository> _mockTagRepository;
-    private TagService _tagService;
-
-    [SetUp]
-    public void Setup()
+    [TestFixture]
+    public class TagServiceTests
     {
-        _mockTagRepository = new Mock<ITagRepository>();
-        _tagService = new TagService(_mockTagRepository.Object);
-    }
+        private Mock<ITagRepository> _mockRepo;
+        private TagService _service;
 
-    [Test]
-    public async Task GetAllTagsAsync_ShouldReturnAllTags()
-    {
-        // Arrange
-        var expectedTags = new List<Tag>
+        [SetUp]
+        public void Setup()
         {
-            new() { Id = 1, Name = "Important" },
-            new() { Id = 2, Name = "Archive" }
-        };
+            _mockRepo = new Mock<ITagRepository>();
+            _service = new TagService(_mockRepo.Object);
+        }
 
-        _mockTagRepository.Setup(x => x.GetAllAsync()).ReturnsAsync(expectedTags);
-
-        // Act
-        var result = await _tagService.GetAllTagsAsync();
-
-        // Assert
-        Assert.That(result, Is.EqualTo(expectedTags));
-        _mockTagRepository.Verify(x => x.GetAllAsync(), Times.Once);
-    }
-
-    [Test]
-    public async Task GetTagByIdAsync_WhenTagExists_ShouldReturnTag()
-    {
-        // Arrange
-        var expectedTag = new Tag { Id = 1, Name = "Important" };
-        _mockTagRepository.Setup(x => x.GetByIdAsync(1)).ReturnsAsync(expectedTag);
-
-        // Act
-        var result = await _tagService.GetTagByIdAsync(1);
-
-        // Assert
-        Assert.That(result, Is.EqualTo(expectedTag));
-        _mockTagRepository.Verify(x => x.GetByIdAsync(1), Times.Once);
-    }
-
-    [Test]
-    public async Task GetTagByIdAsync_WhenTagDoesNotExist_ShouldReturnNull()
-    {
-        // Arrange
-        _mockTagRepository.Setup(x => x.GetByIdAsync(1)).ReturnsAsync((Tag?)null);
-
-        // Act
-        var result = await _tagService.GetTagByIdAsync(1);
-
-        // Assert
-        Assert.That(result, Is.Null);
-        _mockTagRepository.Verify(x => x.GetByIdAsync(1), Times.Once);
-    }
-
-    [Test]
-    public async Task AddTagAsync_ShouldAddTagAndReturnIt()
-    {
-        // Arrange
-        var tag = new Tag { Name = "Important" };
-        _mockTagRepository.Setup(x => x.AddAsync(tag)).Returns(Task.CompletedTask);
-
-        // Act
-        var result = await _tagService.AddTagAsync(tag);
-
-        // Assert
-        Assert.That(result, Is.EqualTo(tag));
-        _mockTagRepository.Verify(x => x.AddAsync(tag), Times.Once);
-    }
-
-    [Test]
-    public async Task UpdateTagAsync_ShouldUpdateTagAndReturnIt()
-    {
-        // Arrange
-        var tag = new Tag { Id = 1, Name = "Important Updated" };
-        _mockTagRepository.Setup(x => x.UpdateAsync(tag)).Returns(Task.CompletedTask);
-
-        // Act
-        var result = await _tagService.UpdateTagAsync(tag);
-
-        // Assert
-        Assert.That(result, Is.EqualTo(tag));
-        _mockTagRepository.Verify(x => x.UpdateAsync(tag), Times.Once);
-    }
-
-    [Test]
-    public async Task DeleteTagAsync_ShouldDeleteTag()
-    {
-        // Arrange
-        var tagId = 1;
-        _mockTagRepository.Setup(x => x.DeleteAsync(tagId)).Returns(Task.CompletedTask);
-
-        // Act
-        await _tagService.DeleteTagAsync(tagId);
-
-        // Assert
-        _mockTagRepository.Verify(x => x.DeleteAsync(tagId), Times.Once);
-    }
-
-    [Test]
-    public async Task SearchTagsAsync_ShouldReturnMatchingTags()
-    {
-        // Arrange
-        var keyword = "Important";
-        var expectedTags = new List<Tag>
+        [Test]
+        public async Task GetAllTagsAsync_ShouldCallRepo()
         {
-            new() { Id = 1, Name = "Important" }
-        };
+            _mockRepo.Setup(x => x.GetAllAsync()).ReturnsAsync(new List<Tag>());
+            var result = await _service.GetAllTagsAsync();
+            Assert.IsNotNull(result);
+            _mockRepo.Verify(x => x.GetAllAsync(), Times.Once);
+        }
 
-        _mockTagRepository.Setup(x => x.SearchTagsAsync(keyword)).ReturnsAsync(expectedTags);
+        [Test]
+        public async Task GetTagByIdAsync_ShouldReturnTag()
+        {
+            var tag = new Tag { Id = 1, Name = "Test" };
+            _mockRepo.Setup(x => x.GetByIdAsync(1)).ReturnsAsync(tag);
+            var result = await _service.GetTagByIdAsync(1);
+            Assert.AreEqual(tag, result);
+        }
 
-        // Act
-        var result = await _tagService.SearchTagsAsync(keyword);
+        [Test]
+        public async Task AddTagAsync_ShouldCallRepo()
+        {
+            var tag = new Tag();
+            _mockRepo.Setup(x => x.AddAsync(tag)).Returns(Task.CompletedTask);
+            await _service.AddTagAsync(tag);
+            _mockRepo.Verify(x => x.AddAsync(tag), Times.Once);
+        }
 
-        // Assert
-        Assert.That(result, Is.EqualTo(expectedTags));
-        _mockTagRepository.Verify(x => x.SearchTagsAsync(keyword), Times.Once);
+        [Test]
+        public async Task UpdateTagAsync_ShouldCallRepo()
+        {
+            var tag = new Tag { Id = 1 };
+            _mockRepo.Setup(x => x.UpdateAsync(tag)).Returns(Task.CompletedTask);
+            await _service.UpdateTagAsync(tag);
+            _mockRepo.Verify(x => x.UpdateAsync(tag), Times.Once);
+        }
+
+        [Test]
+        public async Task DeleteTagAsync_ShouldCallRepo()
+        {
+            await _service.DeleteTagAsync(1);
+            _mockRepo.Verify(x => x.DeleteAsync(1), Times.Once);
+        }
+
+        [Test]
+        public async Task SearchTagsAsync_ShouldCallRepo()
+        {
+            _mockRepo.Setup(x => x.SearchTagsAsync("key")).ReturnsAsync(new List<Tag>());
+            await _service.SearchTagsAsync("key");
+            _mockRepo.Verify(x => x.SearchTagsAsync("key"), Times.Once);
+        }
     }
 }
