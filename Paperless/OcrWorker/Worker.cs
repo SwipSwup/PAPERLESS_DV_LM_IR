@@ -44,12 +44,12 @@ public class Worker(
 
         try
         {
-            using (var scope = serviceProvider.CreateScope())
+            using (IServiceScope scope = serviceProvider.CreateScope())
             {
                 // Resolve scoped services here
-                var minio = scope.ServiceProvider.GetRequiredService<IStorageWrapper>();
-                var ocrService = scope.ServiceProvider.GetRequiredService<IOcrService>();
-                var repo = scope.ServiceProvider.GetRequiredService<IDocumentRepository>();
+                IStorageWrapper minio = scope.ServiceProvider.GetRequiredService<IStorageWrapper>();
+                IOcrService ocrService = scope.ServiceProvider.GetRequiredService<IOcrService>();
+                IDocumentRepository repo = scope.ServiceProvider.GetRequiredService<IDocumentRepository>();
 
                 // Download PDF from MinIO
                 string pdf = await minio.DownloadPdfAsync(msg, ct);
@@ -61,7 +61,7 @@ public class Worker(
                 await minio.UploadTextAsync(msg, text, ct);
 
                 // Update Database
-                var doc = await repo.GetByIdAsync(msg.DocumentId);
+                Document? doc = await repo.GetByIdAsync(msg.DocumentId);
 
                 if (doc != null)
                 {
@@ -70,12 +70,12 @@ public class Worker(
                     logger.LogInformation("Database updated for document {id}", msg.DocumentId);
 
                     // Publish to Indexing
-                    var indexingProducer = producerFactory.GetIndexingProducer();
+                    IDocumentMessageProducer indexingProducer = producerFactory.GetIndexingProducer();
                     await indexingProducer.PublishDocumentAsync(msg);
                     logger.LogInformation("Published document {id} to indexing queue", msg.DocumentId);
 
                     // Publish to GenAI for summary generation
-                    var genaiProducer = producerFactory.GetGenaiProducer();
+                    IDocumentMessageProducer genaiProducer = producerFactory.GetGenaiProducer();
                     await genaiProducer.PublishDocumentAsync(msg);
                     logger.LogInformation("Published document {id} to genai queue", msg.DocumentId);
                 }

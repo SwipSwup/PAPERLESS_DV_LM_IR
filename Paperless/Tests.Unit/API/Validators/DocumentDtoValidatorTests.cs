@@ -21,24 +21,24 @@ namespace Tests.Unit.API.Validators
         [Test]
         public void ShouldHaveError_WhenFileNameIsEmpty()
         {
-            var dto = new DocumentDto { FileName = "" };
-            var result = _validator.TestValidate(dto);
+            DocumentDto dto = new DocumentDto { FileName = "" };
+            TestValidationResult<DocumentDto>? result = _validator.TestValidate(dto);
             result.ShouldHaveValidationErrorFor(x => x.FileName);
         }
 
         [Test]
         public void ShouldNotHaveError_WhenFileNameIsSpecified()
         {
-            var dto = new DocumentDto { FileName = "valid.pdf" };
-            var result = _validator.TestValidate(dto);
+            DocumentDto dto = new DocumentDto { FileName = "valid.pdf" };
+            TestValidationResult<DocumentDto>? result = _validator.TestValidate(dto);
             result.ShouldNotHaveValidationErrorFor(x => x.FileName);
         }
 
         [Test]
         public void ShouldHaveError_WhenFileNameIsTooLong()
         {
-            var dto = new DocumentDto { FileName = new string('a', 256) };
-            var result = _validator.TestValidate(dto);
+            DocumentDto dto = new DocumentDto { FileName = new string('a', 256) };
+            TestValidationResult<DocumentDto>? result = _validator.TestValidate(dto);
             result.ShouldHaveValidationErrorFor(x => x.FileName);
         }
 
@@ -46,8 +46,8 @@ namespace Tests.Unit.API.Validators
         [Test]
         public void ShouldHaveError_WhenUploadedAtIsFuture()
         {
-            var dto = new DocumentDto { UploadedAt = DateTime.Now.AddDays(1) };
-            var result = _validator.TestValidate(dto);
+            DocumentDto dto = new DocumentDto { UploadedAt = DateTime.Now.AddDays(1) };
+            TestValidationResult<DocumentDto>? result = _validator.TestValidate(dto);
             result.ShouldHaveValidationErrorFor(x => x.UploadedAt);
         }
     }

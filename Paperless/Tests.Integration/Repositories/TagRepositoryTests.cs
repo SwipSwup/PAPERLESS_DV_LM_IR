@@ -2,6 +2,7 @@ using AutoMapper;
 using Core.Models;
 using DAL;
 using DAL.Mappings;
+using DAL.Models;
 using DAL.Repositories.Implementations;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
@@ -17,13 +18,13 @@ namespace Tests.Integration.Repositories
 
         public TagRepositoryTests()
         {
-            var options = new DbContextOptionsBuilder<PaperlessDBContext>()
+            DbContextOptions<PaperlessDBContext> options = new DbContextOptionsBuilder<PaperlessDBContext>()
                 .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
                 .Options;
 
             _context = new PaperlessDBContext(options);
 
-            var config = new MapperConfiguration(cfg => cfg.AddProfile<DalMappingProfile>());
+            MapperConfiguration config = new MapperConfiguration(cfg => cfg.AddProfile<DalMappingProfile>());
             _mapper = config.CreateMapper();
 
             _repository = new TagRepository(_context, _mapper);
@@ -32,10 +33,10 @@ namespace Tests.Integration.Repositories
         [Fact]
         public async Task AddAsync_ShouldAddTag()
         {
-            var tag = new Tag { Name = "New Tag" };
+            Tag tag = new Tag { Name = "New Tag" };
             await _repository.AddAsync(tag);
 
-            var inDb = await _context.Tags.FirstOrDefaultAsync();
+            TagEntity? inDb = await _context.Tags.FirstOrDefaultAsync();
             inDb.Should().NotBeNull();
             inDb!.Name.Should().Be("New Tag");
         }
@@ -43,11 +44,11 @@ namespace Tests.Integration.Repositories
         [Fact]
         public async Task GetByIdAsync_ShouldReturnTag()
         {
-            var entity = new DAL.Models.TagEntity { Name = "Existing Tag" };
+            TagEntity entity = new DAL.Models.TagEntity { Name = "Existing Tag" };
             _context.Tags.Add(entity);
             await _context.SaveChangesAsync();
 
-            var result = await _repository.GetByIdAsync(entity.Id);
+            Tag? result = await _repository.GetByIdAsync(entity.Id);
             result.Should().NotBeNull();
             result!.Name.Should().Be("Existing Tag");
         }
@@ -59,7 +60,7 @@ namespace Tests.Integration.Repositories
             _context.Tags.Add(new DAL.Models.TagEntity { Name = "Receipt" });
             await _context.SaveChangesAsync();
 
-            var result = await _repository.SearchTagsAsync("Invoice");
+            List<Tag> result = await _repository.SearchTagsAsync("Invoice");
             result.Should().HaveCount(1);
             result.First().Name.Should().Be("Invoice 2023");
         }

@@ -62,7 +62,7 @@ namespace DAL.Services
                 if (fileStream.Position > 0)
                     fileStream.Position = 0;
 
-                var putObjectArgs = new PutObjectArgs()
+                PutObjectArgs? putObjectArgs = new PutObjectArgs()
                     .WithBucket(_bucketName)
                     .WithObject(fileName)
                     .WithStreamData(fileStream)
@@ -88,11 +88,11 @@ namespace DAL.Services
 
             log.Info($"MinioStorageService: Retrieving '{filePath}' from bucket '{_bucketName}'");
 
-            var memoryStream = new MemoryStream();
+            MemoryStream memoryStream = new MemoryStream();
 
             try
             {
-                var args = new GetObjectArgs()
+                GetObjectArgs? args = new GetObjectArgs()
                     .WithBucket(_bucketName)
                     .WithObject(filePath)
                     .WithCallbackStream((stream) =>
@@ -117,7 +117,7 @@ namespace DAL.Services
 
             try
             {
-                var args = new RemoveObjectArgs()
+                RemoveObjectArgs? args = new RemoveObjectArgs()
                     .WithBucket(_bucketName)
                     .WithObject(filePath);
 

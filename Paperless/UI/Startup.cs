@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Primitives;
 
 namespace UI
 {
@@ -35,24 +36,24 @@ namespace UI
 
                 endpoints.Map("/api/{**catch-all}", async context =>
                 {
-                    var httpClientFactory = context.RequestServices.GetRequiredService<System.Net.Http.IHttpClientFactory>();
-                    var httpClient = httpClientFactory.CreateClient();
+                    IHttpClientFactory httpClientFactory = context.RequestServices.GetRequiredService<System.Net.Http.IHttpClientFactory>();
+                    HttpClient httpClient = httpClientFactory.CreateClient();
 
-                    var targetUri = new Uri("http://paperless-api:8080" + context.Request.Path + context.Request.QueryString);
+                    Uri targetUri = new Uri("http://paperless-api:8080" + context.Request.Path + context.Request.QueryString);
                     Console.WriteLine($"[Proxy] Forwarding to: {targetUri}");
 
-                    var requestMessage = new System.Net.Http.HttpRequestMessage();
+                    HttpRequestMessage requestMessage = new System.Net.Http.HttpRequestMessage();
                     requestMessage.RequestUri = targetUri;
                     requestMessage.Method = new System.Net.Http.HttpMethod(context.Request.Method);
 
                     if (context.Request.Body != null)
                     {
-                        var streamContent = new System.Net.Http.StreamContent(context.Request.Body);
+                        StreamContent streamContent = new System.Net.Http.StreamContent(context.Request.Body);
                         requestMessage.Content = streamContent;
                     }
 
                     // Copy headers
-                    foreach (var header in context.Request.Headers)
+                    foreach (KeyValuePair<string, StringValues> header in context.Request.Headers)
                     {
                         if (!header.Key.StartsWith("Host", System.StringComparison.OrdinalIgnoreCase) &&
                             !header.Key.StartsWith("Connection", System.StringComparison.OrdinalIgnoreCase))
@@ -61,13 +62,13 @@ namespace UI
                         }
                     }
 
-                    var responseMessage = await httpClient.SendAsync(requestMessage);
+                    HttpResponseMessage responseMessage = await httpClient.SendAsync(requestMessage);
                     Console.WriteLine($"[Proxy] API Response: {responseMessage.StatusCode}");
 
                     context.Response.StatusCode = (int)responseMessage.StatusCode;
 
                     // Copy response headers (excluding hop-by-hop)
-                    foreach (var header in responseMessage.Headers)
+                    foreach (KeyValuePair<string, IEnumerable<string>> header in responseMessage.Headers)
                     {
                         if (!header.Key.Equals("Transfer-Encoding", StringComparison.OrdinalIgnoreCase) &&
                             !header.Key.Equals("Connection", StringComparison.OrdinalIgnoreCase))
@@ -75,7 +76,7 @@ namespace UI
                             context.Response.Headers[header.Key] = header.Value.ToArray();
                         }
                     }
-                    foreach (var header in responseMessage.Content.Headers)
+                    foreach (KeyValuePair<string, IEnumerable<string>> header in responseMessage.Content.Headers)
                     {
                         if (!header.Key.Equals("Content-Length", StringComparison.OrdinalIgnoreCase)) // Let Kestrel calculate length
                         {

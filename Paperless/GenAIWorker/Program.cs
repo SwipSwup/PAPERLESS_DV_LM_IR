@@ -11,7 +11,7 @@ using AutoMapper;
 using Core.Messaging;
 using Microsoft.Extensions.Options;
 
-var builder = Host.CreateApplicationBuilder(args);
+HostApplicationBuilder builder = Host.CreateApplicationBuilder(args);
 
 // Config
 builder.Services.Configure<RabbitMqSettings>(builder.Configuration.GetSection("RabbitMq"));
@@ -36,8 +36,8 @@ builder.Services.AddSingleton<IMessageConsumer, MessageConsumer>();
 
 builder.Services.AddSingleton<IDocumentMessageProducer>(sp =>
 {
-    var settings = sp.GetRequiredService<IOptions<RabbitMqSettings>>().Value;
-    var producerSettings = new RabbitMqSettings
+    RabbitMqSettings settings = sp.GetRequiredService<IOptions<RabbitMqSettings>>().Value;
+    RabbitMqSettings producerSettings = new RabbitMqSettings
     {
         Host = settings.Host,
         Port = settings.Port,
@@ -49,14 +49,14 @@ builder.Services.AddSingleton<IDocumentMessageProducer>(sp =>
 });
 
 // GenAI Service
-builder.Services.AddHttpClient<GenAIService>(client =>
+builder.Services.AddHttpClient<GenAiService>(client =>
 {
     client.Timeout = TimeSpan.FromSeconds(60);
 });
-builder.Services.AddScoped<IGenAIService, GenAIService>();
+builder.Services.AddScoped<IGenAIService, GenAiService>();
 
 // Worker
 builder.Services.AddHostedService<Worker>();
 
-var host = builder.Build();
+IHost host = builder.Build();
 host.Run();

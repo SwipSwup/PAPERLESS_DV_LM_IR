@@ -20,7 +20,7 @@ namespace OcrWorker.Messaging
         {
             if (_indexingProducer == null)
             {
-                var producerSettings = new RabbitMqSettings
+                RabbitMqSettings producerSettings = new RabbitMqSettings
                 {
                     Host = _baseSettings.Host,
                     Port = _baseSettings.Port,
@@ -37,7 +37,7 @@ namespace OcrWorker.Messaging
         {
             if (_genaiProducer == null)
             {
-                var producerSettings = new RabbitMqSettings
+                RabbitMqSettings producerSettings = new RabbitMqSettings
                 {
                     Host = _baseSettings.Host,
                     Port = _baseSettings.Port,

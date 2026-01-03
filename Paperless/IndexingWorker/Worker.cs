@@ -2,6 +2,8 @@ using Elastic.Clients.Elasticsearch;
 using Core.DTOs;
 using Core.Repositories.Interfaces;
 using IndexingWorker.Messaging;
+using Microsoft.Extensions.Options;
+using Core.Configuration;
 
 namespace IndexingWorker;
 
@@ -9,44 +11,26 @@ public class Worker(
     ILogger<Worker> logger,
     IMessageConsumer consumer,
     ElasticsearchClient elasticClient,
+    IOptions<RabbitMqSettings> rabbitMqOptions,
     IServiceProvider serviceProvider)
     : BackgroundService
 {
     private const string IndexName = "documents";
+    private readonly RabbitMqSettings _rabbitSettings = rabbitMqOptions.Value;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         await EnsureIndexExistsAsync(stoppingToken);
+        
+        var queueName = _rabbitSettings.QueueName ?? "indexing";
+        logger.LogInformation("IndexingWorker starting. Consuming from queue: {queue}", queueName);
 
         while (!stoppingToken.IsCancellationRequested)
         {
             try
             {
-                 // Consume from same queue? Or a new one?
-                 // OcrWorker publishes to "documents"??
-                 // Wait, RabbitMqProducer publishes to _queueName from settings.
-                 // API publishes to "documents" (for OCR).
-                 // OcrWorker should publish to "indexing" or similar?
-                 // If OcrWorker reuses RabbitMqProducer with same settings, it publishes to "documents".
-                 // This would be a loop!
-                 // I need to check RabbitMqSettings in OcrWorker.
-                 
-                 // Assuming OcrWorker publishes to "documents", IndexingWorker listening to "documents" would get OCR requests too?
-                 // No, DocumentMessageDto usually has a State?
-                 // Or we use different queues.
-                 // I should likely change OcrWorker to publish to "indexing" queue. Or generic producer allows routing key?
-                 // The current Producer uses _queueName from settings.
-                 
-                 // If I can't change OcrWorker settings easily without config change...
-                 // I should check Request/Response pattern.
-                 
-                 // FOR NOW: I assume I should listen to "indexing" queue. 
-                 // I will assume OcrWorker is configured to publish to "indexing" queue? 
-                 // But OcrWorker appsettings probably says "documents".
-                 // I will check OcrWorker appsettings.
-                 
                 await consumer.ConsumeAsync<DocumentMessageDto>(
-                    queueName: "indexing", 
+                    queueName: queueName, 
                     onMessage: OnMessage,
                     stoppingToken);
 
@@ -62,18 +46,33 @@ public class Worker(
 
     private async Task EnsureIndexExistsAsync(CancellationToken ct)
     {
-        var existsResponse = await elasticClient.Indices.ExistsAsync(IndexName, ct);
-        if (!existsResponse.Exists)
+        try 
         {
-            await elasticClient.Indices.CreateAsync(IndexName, c => c
-                .Mappings(m => m
-                    .Properties<Core.DTOs.DocumentDto>(p => p
-                        .Text(d => d.OcrText)
-                        .Text(d => d.FileName)
-                        .Text(d => d.Summary)
-                    )
-                ), ct);
-            logger.LogInformation("Created index {index}", IndexName);
+            var existsResponse = await elasticClient.Indices.ExistsAsync(IndexName, ct);
+            if (!existsResponse.Exists)
+            {
+                var response = await elasticClient.Indices.CreateAsync(IndexName, c => c
+                    .Mappings(m => m
+                        .Properties<Core.DTOs.DocumentDto>(p => p
+                            .Text(d => d.OcrText)
+                            .Text(d => d.FileName)
+                            .Text(d => d.Summary)
+                        )
+                    ), ct);
+                    
+                if (response.IsValidResponse)
+                {
+                    logger.LogInformation("Created index {index}", IndexName);
+                }
+                else
+                {
+                    logger.LogError("Failed to create index {index}: {debug}", IndexName, response.DebugInformation);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error checking/creating index {index}", IndexName);
         }
     }
 

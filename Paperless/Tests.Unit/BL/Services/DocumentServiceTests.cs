@@ -43,12 +43,12 @@ public class DocumentServiceTests
     public async Task GetAllDocumentsAsync_ShouldReturnMappedDocuments()
     {
         // Arrange
-        var documents = new List<Document>
+        List<Document> documents = new List<Document>
         {
             new() { Id = 1, FileName = "test1.pdf" },
             new() { Id = 2, FileName = "test2.pdf" }
         };
-        var expectedDtos = new List<DocumentDto>
+        List<DocumentDto> expectedDtos = new List<DocumentDto>
         {
             new() { Id = 1, FileName = "test1.pdf" },
             new() { Id = 2, FileName = "test2.pdf" }
@@ -58,7 +58,7 @@ public class DocumentServiceTests
         _mockMapper.Setup(x => x.Map<List<DocumentDto>>(documents)).Returns(expectedDtos);
 
         // Act
-        var result = await _documentService.GetAllDocumentsAsync();
+        List<DocumentDto> result = await _documentService.GetAllDocumentsAsync();
 
         // Assert
         Assert.That(result, Is.EqualTo(expectedDtos));
@@ -70,14 +70,14 @@ public class DocumentServiceTests
     public async Task GetDocumentByIdAsync_WhenDocumentExists_ShouldReturnMappedDocument()
     {
         // Arrange
-        var document = new Document { Id = 1, FileName = "test.pdf" };
-        var expectedDto = new DocumentDto { Id = 1, FileName = "test.pdf" };
+        Document document = new Document { Id = 1, FileName = "test.pdf" };
+        DocumentDto expectedDto = new DocumentDto { Id = 1, FileName = "test.pdf" };
 
         _mockDocumentRepo.Setup(x => x.GetByIdAsync(1)).ReturnsAsync(document);
         _mockMapper.Setup(x => x.Map<DocumentDto>(document)).Returns(expectedDto);
 
         // Act
-        var result = await _documentService.GetDocumentByIdAsync(1);
+        DocumentDto? result = await _documentService.GetDocumentByIdAsync(1);
 
         // Assert
         Assert.That(result, Is.EqualTo(expectedDto));
@@ -89,14 +89,14 @@ public class DocumentServiceTests
     public async Task GetDocumentByIdAsync_ShouldReturnNull_WhenNotFound()
     {
         _mockDocumentRepo.Setup(x => x.GetByIdAsync(99)).ReturnsAsync((Document?)null);
-        var result = await _documentService.GetDocumentByIdAsync(99);
+        DocumentDto? result = await _documentService.GetDocumentByIdAsync(99);
         Assert.IsNull(result);
     }
 
     [Test]
     public async Task UpdateDocumentAsync_ShouldNotThrow_WhenNotFound()
     {
-        var doc = new Document { Id = 99 };
+        Document doc = new Document { Id = 99 };
         _mockDocumentRepo.Setup(x => x.UpdateAsync(doc)).Returns(Task.CompletedTask);
         // Assuming service doesn't throw if update passes
         await _documentService.UpdateDocumentAsync(doc);
@@ -107,14 +107,14 @@ public class DocumentServiceTests
     public async Task AddDocumentAsync_ShouldAddDocumentAndReturnMappedDto()
     {
         // Arrange
-        var document = new Document { FileName = "test.pdf" };
-        var expectedDto = new DocumentDto { Id = 1, FileName = "test.pdf" };
+        Document document = new Document { FileName = "test.pdf" };
+        DocumentDto expectedDto = new DocumentDto { Id = 1, FileName = "test.pdf" };
 
         _mockDocumentRepo.Setup(x => x.AddAsync(document)).Returns(Task.CompletedTask);
         _mockMapper.Setup(x => x.Map<DocumentDto>(document)).Returns(expectedDto);
 
         // Act
-        var result = await _documentService.AddDocumentAsync(document);
+        DocumentDto result = await _documentService.AddDocumentAsync(document);
 
         // Assert
         Assert.That(result, Is.EqualTo(expectedDto));
@@ -126,14 +126,14 @@ public class DocumentServiceTests
     public async Task UpdateDocumentAsync_ShouldUpdateDocumentAndReturnMappedDto()
     {
         // Arrange
-        var document = new Document { Id = 1, FileName = "test.pdf" };
-        var expectedDto = new DocumentDto { Id = 1, FileName = "test.pdf" };
+        Document document = new Document { Id = 1, FileName = "test.pdf" };
+        DocumentDto expectedDto = new DocumentDto { Id = 1, FileName = "test.pdf" };
 
         _mockDocumentRepo.Setup(x => x.UpdateAsync(document)).Returns(Task.CompletedTask);
         _mockMapper.Setup(x => x.Map<DocumentDto>(document)).Returns(expectedDto);
 
         // Act
-        var result = await _documentService.UpdateDocumentAsync(document);
+        DocumentDto result = await _documentService.UpdateDocumentAsync(document);
 
         // Assert
         Assert.That(result, Is.EqualTo(expectedDto));
@@ -148,7 +148,7 @@ public class DocumentServiceTests
         _mockDocumentRepo.Setup(x => x.GetByIdAsync(1)).ReturnsAsync((Document?)null);
 
         // Act
-        var result = await _documentService.DeleteDocumentAsync(1);
+        bool result = await _documentService.DeleteDocumentAsync(1);
 
         // Assert
         Assert.That(result, Is.False);
@@ -160,8 +160,8 @@ public class DocumentServiceTests
     public async Task SearchDocumentsAsync_ShouldReturnMappedDocuments()
     {
         // Arrange
-        var keyword = "test";
-        var expectedDtos = new List<DocumentDto>
+        string keyword = "test";
+        List<DocumentDto> expectedDtos = new List<DocumentDto>
         {
             new() { Id = 1, FileName = "test1.pdf" }
         };
@@ -169,7 +169,7 @@ public class DocumentServiceTests
         _mockSearchService.Setup(x => x.SearchDocumentsAsync(keyword)).ReturnsAsync(expectedDtos);
 
         // Act
-        var result = await _documentService.SearchDocumentsAsync(keyword);
+        List<DocumentDto> result = await _documentService.SearchDocumentsAsync(keyword);
 
         // Assert
         Assert.That(result, Is.EqualTo(expectedDtos));
@@ -182,10 +182,10 @@ public class DocumentServiceTests
     public async Task LogAccessAsync_WhenLogExists_ShouldIncrementCount()
     {
         // Arrange
-        var documentId = 1;
-        var date = DateTime.Today;
-        var existingLog = new AccessLog { Id = 1, Date = date, Count = 1 };
-        var logs = new List<AccessLog> { existingLog };
+        int documentId = 1;
+        DateTime date = DateTime.Today;
+        AccessLog existingLog = new AccessLog { Id = 1, Date = date, Count = 1 };
+        List<AccessLog> logs = new List<AccessLog> { existingLog };
 
         _mockAccessLogRepo.Setup(x => x.GetByDocumentIdAsync(documentId)).ReturnsAsync(logs);
         _mockAccessLogRepo.Setup(x => x.UpdateAsync(It.IsAny<AccessLog>())).Returns(Task.CompletedTask);
@@ -203,9 +203,9 @@ public class DocumentServiceTests
     public async Task AddLogToDocumentAsync_ShouldAddDocumentLog()
     {
         // Arrange
-        var documentId = 1;
-        var action = "OCR Completed";
-        var details = "Text extracted successfully";
+        int documentId = 1;
+        string action = "OCR Completed";
+        string details = "Text extracted successfully";
 
         _mockDocumentLogRepo.Setup(x => x.AddAsync(It.IsAny<DocumentLog>())).Returns(Task.CompletedTask);
 

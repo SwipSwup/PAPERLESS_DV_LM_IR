@@ -12,7 +12,7 @@ namespace Tests.Unit.BL.Messaging
         public void Constructor_ShouldThrow_WhenConnectionFails()
         {
             // Arrange
-            var settings = new RabbitMqSettings
+            RabbitMqSettings settings = new RabbitMqSettings
             {
                 Host = "invalid-host",
                 Port = 5672,

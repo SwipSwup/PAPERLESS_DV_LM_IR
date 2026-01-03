@@ -79,9 +79,9 @@ namespace DAL.Repositories.Implementations
                 // Handle tags: find existing tags by name or create new ones
                 if (model.Tags != null)
                 {
-                    var tagEntities = new List<TagEntity>();
+                    List<TagEntity> tagEntities = new List<TagEntity>();
 
-                    foreach (var tag in model.Tags)
+                    foreach (Tag tag in model.Tags)
                     {
                         TagEntity? tagEntity;
 

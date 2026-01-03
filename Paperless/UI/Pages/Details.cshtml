@@ -4,6 +4,8 @@
     ViewData["Title"] = "Document Details";
 }
 
+@using Core.Constants
+
 <div class="animate-fade-in" style="height: calc(100vh - 100px); display: flex; flex-direction: column;">
     <div class="d-flex justify-between align-center mb-4">
         <div class="d-flex align-center gap-2">
@@ -71,18 +73,10 @@
                                 
                                 <div id="colorMenu" class="card" style="display: none; position: absolute; top: 100%; left: 0; z-index: 100; margin-top: 5px; padding: 10px; width: 220px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);">
                                     <div class="d-flex gap-2" style="flex-wrap: wrap;">
-                                        <div class="color-swatch" style="background-color: #3b82f6;" onclick="selectColor('#3b82f6')"></div>
-                                        <div class="color-swatch" style="background-color: #ef4444;" onclick="selectColor('#ef4444')"></div>
-                                        <div class="color-swatch" style="background-color: #10b981;" onclick="selectColor('#10b981')"></div>
-                                        <div class="color-swatch" style="background-color: #f59e0b;" onclick="selectColor('#f59e0b')"></div>
-                                        <div class="color-swatch" style="background-color: #8b5cf6;" onclick="selectColor('#8b5cf6')"></div>
-                                        <div class="color-swatch" style="background-color: #ec4899;" onclick="selectColor('#ec4899')"></div>
-                                        <div class="color-swatch" style="background-color: #6366f1;" onclick="selectColor('#6366f1')"></div>
-                                        <div class="color-swatch" style="background-color: #14b8a6;" onclick="selectColor('#14b8a6')"></div>
-                                        <div class="color-swatch" style="background-color: #84cc16;" onclick="selectColor('#84cc16')"></div>
-                                        <div class="color-swatch" style="background-color: #f97316;" onclick="selectColor('#f97316')"></div>
-                                        <div class="color-swatch" style="background-color: #64748b;" onclick="selectColor('#64748b')"></div>
-                                        <div class="color-swatch" style="background-color: #71717a;" onclick="selectColor('#71717a')"></div>
+                                        @foreach (var color in Core.Constants.TagPalette.AvailableColors)
+                                        {
+                                            <div class="color-swatch" style="background-color: @color;" onclick="selectColor('@color')"></div>
+                                        }
                                     </div>
                                 </div>
                              </div>

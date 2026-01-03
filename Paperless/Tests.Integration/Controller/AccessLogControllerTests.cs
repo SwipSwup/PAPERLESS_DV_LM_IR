@@ -18,9 +18,9 @@ namespace Tests.Integration.Controller
         [Fact]
         public async Task GetAll_ShouldReturnOk()
         {
-            var response = await _client.GetAsync("/api/accesslog");
+            HttpResponseMessage response = await _client.GetAsync("/api/accesslog");
             response.StatusCode.Should().Be(HttpStatusCode.OK);
-            var logs = await response.Content.ReadFromJsonAsync<List<AccessLogDto>>();
+            List<AccessLogDto>? logs = await response.Content.ReadFromJsonAsync<List<AccessLogDto>>();
             logs.Should().NotBeNull();
         }
 

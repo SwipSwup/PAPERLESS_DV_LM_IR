@@ -25,7 +25,7 @@ namespace Tests.Unit.BL.Services
         public async Task GetAllTagsAsync_ShouldCallRepo()
         {
             _mockRepo.Setup(x => x.GetAllAsync()).ReturnsAsync(new List<Tag>());
-            var result = await _service.GetAllTagsAsync();
+            List<Tag> result = await _service.GetAllTagsAsync();
             Assert.IsNotNull(result);
             _mockRepo.Verify(x => x.GetAllAsync(), Times.Once);
         }
@@ -33,16 +33,16 @@ namespace Tests.Unit.BL.Services
         [Test]
         public async Task GetTagByIdAsync_ShouldReturnTag()
         {
-            var tag = new Tag { Id = 1, Name = "Test" };
+            Tag tag = new Tag { Id = 1, Name = "Test" };
             _mockRepo.Setup(x => x.GetByIdAsync(1)).ReturnsAsync(tag);
-            var result = await _service.GetTagByIdAsync(1);
+            Tag? result = await _service.GetTagByIdAsync(1);
             Assert.That(result, Is.EqualTo(tag));
         }
 
         [Test]
         public async Task AddTagAsync_ShouldCallRepo()
         {
-            var tag = new Tag();
+            Tag tag = new Tag();
             _mockRepo.Setup(x => x.AddAsync(tag)).Returns(Task.CompletedTask);
             await _service.AddTagAsync(tag);
             _mockRepo.Verify(x => x.AddAsync(tag), Times.Once);
@@ -51,7 +51,7 @@ namespace Tests.Unit.BL.Services
         [Test]
         public async Task UpdateTagAsync_ShouldCallRepo()
         {
-            var tag = new Tag { Id = 1 };
+            Tag tag = new Tag { Id = 1 };
             _mockRepo.Setup(x => x.UpdateAsync(tag)).Returns(Task.CompletedTask);
             await _service.UpdateTagAsync(tag);
             _mockRepo.Verify(x => x.UpdateAsync(tag), Times.Once);

@@ -17,7 +17,7 @@ namespace DAL.Models
         [Required]
         [MaxLength(500)]
         public string FilePath { get; set; } = string.Empty;
-
+        
         public string? OcrText { get; set; }   // OCR result (before Elastic indexing)
 
         public string? Summary { get; set; }   // AI-generated summary

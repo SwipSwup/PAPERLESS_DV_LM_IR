@@ -29,22 +29,22 @@ namespace Tests.Unit.BL.Services
         [Test]
         public async Task GetAllAsync_ShouldReturnMappedDtos()
         {
-            var list = new List<AccessLog>();
+            List<AccessLog> list = new List<AccessLog>();
             _mockRepo.Setup(x => x.GetAllAsync()).ReturnsAsync(list);
             _mockMapper.Setup(x => x.Map<List<AccessLogDto>>(list)).Returns(new List<AccessLogDto>());
 
-            var result = await _service.GetAllAsync();
+            List<AccessLogDto> result = await _service.GetAllAsync();
             Assert.IsNotNull(result);
         }
 
         [Test]
         public async Task GetByIdAsync_ShouldReturnDto_WhenFound()
         {
-            var entity = new AccessLog();
+            AccessLog entity = new AccessLog();
             _mockRepo.Setup(x => x.GetByIdAsync(1)).ReturnsAsync(entity);
             _mockMapper.Setup(x => x.Map<AccessLogDto>(entity)).Returns(new AccessLogDto());
 
-            var result = await _service.GetByIdAsync(1);
+            AccessLogDto? result = await _service.GetByIdAsync(1);
             Assert.IsNotNull(result);
         }
 
@@ -52,14 +52,14 @@ namespace Tests.Unit.BL.Services
         public async Task GetByIdAsync_ShouldReturnNull_WhenNotFound()
         {
             _mockRepo.Setup(x => x.GetByIdAsync(1)).ReturnsAsync((AccessLog)null);
-            var result = await _service.GetByIdAsync(1);
+            AccessLogDto? result = await _service.GetByIdAsync(1);
             Assert.IsNull(result);
         }
 
         [Test]
         public async Task AddAsync_ShouldCallRepo()
         {
-            var entity = new AccessLog();
+            AccessLog entity = new AccessLog();
             _mockRepo.Setup(x => x.AddAsync(entity)).Returns(Task.CompletedTask);
             _mockMapper.Setup(x => x.Map<AccessLogDto>(entity)).Returns(new AccessLogDto());
 
@@ -70,8 +70,8 @@ namespace Tests.Unit.BL.Services
         [Test]
         public async Task LogAccessAsync_ShouldIncrementCount_WhenExists()
         {
-            var date = DateTime.Today;
-            var existing = new AccessLog { Id = 1, Date = date, Count = 1 };
+            DateTime date = DateTime.Today;
+            AccessLog existing = new AccessLog { Id = 1, Date = date, Count = 1 };
             _mockRepo.Setup(x => x.GetByDocumentIdAsync(1))
                 .ReturnsAsync(new List<AccessLog> { existing });
 
@@ -84,7 +84,7 @@ namespace Tests.Unit.BL.Services
         [Test]
         public async Task LogAccessAsync_ShouldCreateNew_WhenNotExists()
         {
-            var date = DateTime.Today;
+            DateTime date = DateTime.Today;
             _mockRepo.Setup(x => x.GetByDocumentIdAsync(1))
                 .ReturnsAsync(new List<AccessLog>());
 
@@ -98,7 +98,7 @@ namespace Tests.Unit.BL.Services
         public async Task DeleteAsync_ShouldReturnFalse_WhenNotFound()
         {
             _mockRepo.Setup(x => x.GetByIdAsync(1)).ReturnsAsync((AccessLog)null);
-            var result = await _service.DeleteAsync(1);
+            bool result = await _service.DeleteAsync(1);
             Assert.IsFalse(result);
         }
     }

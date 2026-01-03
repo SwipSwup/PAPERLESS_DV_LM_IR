@@ -4,6 +4,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using DAL;
 using System.Linq;
+using Core.Interfaces;
+using Core.Messaging;
+using Moq;
 
 namespace Tests.Integration
 {
@@ -13,7 +16,7 @@ namespace Tests.Integration
         {
             builder.ConfigureServices(services =>
             {
-                var descriptor = services.SingleOrDefault(
+                ServiceDescriptor? descriptor = services.SingleOrDefault(
                     d => d.ServiceType == typeof(DbContextOptions<PaperlessDBContext>));
 
                 if (descriptor != null)
@@ -27,17 +30,17 @@ namespace Tests.Integration
                 });
 
                 // Remove existing IStorageService
-                var storageDescriptor = services.SingleOrDefault(d => d.ServiceType == typeof(Core.Interfaces.IStorageService));
+                ServiceDescriptor? storageDescriptor = services.SingleOrDefault(d => d.ServiceType == typeof(Core.Interfaces.IStorageService));
                 if (storageDescriptor != null) services.Remove(storageDescriptor);
 
                 // Remove existing IDocumentMessageProducer
-                var producerDescriptor = services.SingleOrDefault(d => d.ServiceType == typeof(Core.Messaging.IDocumentMessageProducer));
+                ServiceDescriptor? producerDescriptor = services.SingleOrDefault(d => d.ServiceType == typeof(Core.Messaging.IDocumentMessageProducer));
                 if (producerDescriptor != null) services.Remove(producerDescriptor);
 
                 // Add Mocks
                 services.AddScoped<Core.Interfaces.IStorageService>(sp =>
                 {
-                    var mock = new Moq.Mock<Core.Interfaces.IStorageService>();
+                    Mock<IStorageService> mock = new Moq.Mock<Core.Interfaces.IStorageService>();
                     mock.Setup(x => x.UploadFileAsync(Moq.It.IsAny<System.IO.Stream>(), Moq.It.IsAny<string>(), Moq.It.IsAny<string>()))
                         .Returns(Task.FromResult("mock/path/file.pdf"));
                     return mock.Object;
@@ -45,17 +48,17 @@ namespace Tests.Integration
 
                 services.AddScoped<Core.Messaging.IDocumentMessageProducer>(sp =>
                 {
-                    var mock = new Moq.Mock<Core.Messaging.IDocumentMessageProducer>();
+                    Mock<IDocumentMessageProducer> mock = new Moq.Mock<Core.Messaging.IDocumentMessageProducer>();
                     return mock.Object;
                 });
 
                 // Remove ISearchService
-                var searchDescriptor = services.SingleOrDefault(d => d.ServiceType == typeof(Core.Interfaces.ISearchService));
+                ServiceDescriptor? searchDescriptor = services.SingleOrDefault(d => d.ServiceType == typeof(Core.Interfaces.ISearchService));
                 if (searchDescriptor != null) services.Remove(searchDescriptor);
 
                 services.AddScoped<Core.Interfaces.ISearchService>(sp =>
                 {
-                    var mock = new Moq.Mock<Core.Interfaces.ISearchService>();
+                    Mock<ISearchService> mock = new Moq.Mock<Core.Interfaces.ISearchService>();
                     mock.Setup(x => x.SearchDocumentsAsync(Moq.It.IsAny<string>()))
                         .Returns(Task.FromResult<IEnumerable<Core.DTOs.DocumentDto>>(new List<Core.DTOs.DocumentDto>()));
                     return mock.Object;

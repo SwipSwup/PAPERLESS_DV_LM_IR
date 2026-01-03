@@ -2,6 +2,7 @@ using AutoMapper;
 using Core.Models;
 using DAL;
 using DAL.Mappings;
+using DAL.Models;
 using DAL.Repositories.Implementations;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
@@ -17,13 +18,13 @@ namespace Tests.Integration.Repositories
 
         public DocumentRepositoryTests()
         {
-            var options = new DbContextOptionsBuilder<PaperlessDBContext>()
+            DbContextOptions<PaperlessDBContext> options = new DbContextOptionsBuilder<PaperlessDBContext>()
                 .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
                 .Options;
 
             _context = new PaperlessDBContext(options);
 
-            var config = new MapperConfiguration(cfg => cfg.AddProfile<DalMappingProfile>());
+            MapperConfiguration config = new MapperConfiguration(cfg => cfg.AddProfile<DalMappingProfile>());
             _mapper = config.CreateMapper();
 
             _repository = new DocumentRepository(_context, _mapper);
@@ -32,10 +33,10 @@ namespace Tests.Integration.Repositories
         [Fact]
         public async Task AddAsync_ShouldAddDocument()
         {
-            var doc = new Document { FileName = "Test Doc", UploadedAt = DateTime.UtcNow };
+            Document doc = new Document { FileName = "Test Doc", UploadedAt = DateTime.UtcNow };
             await _repository.AddAsync(doc);
 
-            var inDb = await _context.Documents.FirstOrDefaultAsync();
+            DocumentEntity? inDb = await _context.Documents.FirstOrDefaultAsync();
             inDb.Should().NotBeNull();
             inDb!.FileName.Should().Be("Test Doc");
         }
@@ -43,11 +44,11 @@ namespace Tests.Integration.Repositories
         [Fact]
         public async Task GetByIdAsync_ShouldReturnDocument()
         {
-            var entity = new DAL.Models.DocumentEntity { FileName = "Existing", FilePath = "path", UploadedAt = DateTime.UtcNow };
+            DocumentEntity entity = new DAL.Models.DocumentEntity { FileName = "Existing", FilePath = "path", UploadedAt = DateTime.UtcNow };
             _context.Documents.Add(entity);
             await _context.SaveChangesAsync();
 
-            var result = await _repository.GetByIdAsync(entity.Id);
+            Document? result = await _repository.GetByIdAsync(entity.Id);
             result.Should().NotBeNull();
             result!.FileName.Should().Be("Existing");
         }

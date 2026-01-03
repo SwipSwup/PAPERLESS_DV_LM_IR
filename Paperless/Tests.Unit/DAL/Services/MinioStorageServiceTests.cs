@@ -12,7 +12,7 @@ namespace Tests.Unit.DAL.Services
         public void Constructor_ShouldInitializeWithValidSettings()
         {
             // Arrange
-            var settings = new MinioSettings
+            MinioSettings settings = new MinioSettings
             {
                 Endpoint = "localhost:9000",
                 AccessKey = "minio",

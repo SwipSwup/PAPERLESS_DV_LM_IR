@@ -46,12 +46,12 @@ namespace GenAIWorker
 
             try
             {
-                using (var scope = serviceProvider.CreateScope())
+                using (IServiceScope scope = serviceProvider.CreateScope())
                 {
-                    var repo = scope.ServiceProvider.GetRequiredService<IDocumentRepository>();
+                    IDocumentRepository repo = scope.ServiceProvider.GetRequiredService<IDocumentRepository>();
 
                     // Get document with OCR text
-                    var doc = await repo.GetByIdAsync(msg.DocumentId);
+                    Document? doc = await repo.GetByIdAsync(msg.DocumentId);
 
                     if (doc == null)
                     {
@@ -75,7 +75,7 @@ namespace GenAIWorker
 
                         try
                         {
-                            var summary = await genAIService.GenerateSummaryAsync(doc.OcrText, ct);
+                            string summary = await genAIService.GenerateSummaryAsync(doc.OcrText, ct);
                             doc.Summary = summary;
                             needsUpdate = true;
                             logger.LogInformation("Successfully generated summary for document {id}", msg.DocumentId);
@@ -98,7 +98,7 @@ namespace GenAIWorker
 
                     try
                     {
-                        var generatedTags = await genAIService.GenerateTagsAsync(doc.OcrText, ct);
+                        List<Tag>? generatedTags = await genAIService.GenerateTagsAsync(doc.OcrText, ct);
 
                         if (generatedTags != null && generatedTags.Any())
                         {
@@ -110,7 +110,7 @@ namespace GenAIWorker
 
                             // Add only tags that don't already exist (case-insensitive comparison)
                             int addedCount = 0;
-                            foreach (var newTag in generatedTags)
+                            foreach (Tag newTag in generatedTags)
                             {
                                 if (!doc.Tags.Any(t => t.Name.Equals(newTag.Name, StringComparison.OrdinalIgnoreCase)))
                                 {

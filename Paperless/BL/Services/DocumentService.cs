@@ -140,7 +140,7 @@ namespace BL.Services
             log.Info($"DocumentService.SearchDocumentsAsync called with keyword='{keyword}'");
             try
             {
-                var dtos = await _searchService.SearchDocumentsAsync(keyword);
+                IEnumerable<DocumentDto> dtos = await _searchService.SearchDocumentsAsync(keyword);
                 return dtos.ToList();
             }
             catch (DataAccessException ex)

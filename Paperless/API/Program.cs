@@ -47,8 +47,8 @@ builder.Services.AddScoped<ISearchService, SearchService>();
 // ElasticSearch
 builder.Services.AddSingleton<ElasticsearchClient>(sp =>
 {
-    var uri = builder.Configuration["ElasticSearch:Uri"] ?? "http://elasticsearch:9200";
-    var settings = new ElasticsearchClientSettings(new Uri(uri))
+    string uri = builder.Configuration["ElasticSearch:Uri"] ?? "http://elasticsearch:9200";
+    ElasticsearchClientSettings settings = new ElasticsearchClientSettings(new Uri(uri))
         .DisableDirectStreaming(); // Capture Request/Response bytes
     return new ElasticsearchClient(settings);
 });
@@ -118,7 +118,7 @@ builder.WebHost.ConfigureKestrel(options =>
     options.ListenAnyIP(8081);
 });
 
-var app = builder.Build();
+WebApplication app = builder.Build();
 
 // --------------------
 // Configure Middleware

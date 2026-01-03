@@ -25,8 +25,8 @@ namespace Tests.Unit.BL.Services
         public async Task SearchDocumentsAsync_ShouldReturnDocuments_WhenQueryIsValid()
         {
             // Arrange
-            var mockClient = new Mock<ElasticsearchClient>();
-            var response = new SearchResponse<DocumentDto>();
+            Mock<ElasticsearchClient> mockClient = new Mock<ElasticsearchClient>();
+            SearchResponse<DocumentDto> response = new SearchResponse<DocumentDto>();
             // Setting properties on response might be hard due to internal setters.
             // If we can't set Documents, checking flow might be tricky.
             // Just verifying the call was made is partial validation.
@@ -45,10 +45,10 @@ namespace Tests.Unit.BL.Services
             mockClient.Setup(x => x.SearchAsync<DocumentDto>(It.IsAny<Action<SearchRequestDescriptor<DocumentDto>>>(), It.IsAny<CancellationToken>()))
                .ThrowsAsync(new Exception("Simulated connection failure"));
 
-            var service = new SearchService(mockClient.Object, _mockLogger.Object);
+            SearchService service = new SearchService(mockClient.Object, _mockLogger.Object);
 
             // Act
-            var result = await service.SearchDocumentsAsync("test");
+            IEnumerable<DocumentDto> result = await service.SearchDocumentsAsync("test");
 
             // Assert
             result.Should().BeEmpty();

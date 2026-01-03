@@ -15,7 +15,7 @@ namespace BL.Services
         {
             try
             {
-                var response = await elasticClient.SearchAsync<DocumentDto>(s => s
+                SearchResponse<DocumentDto> response = await elasticClient.SearchAsync<DocumentDto>(s => s
                     .Index(IndexName)
                     .Query(q => q
                         .Bool(b => b
