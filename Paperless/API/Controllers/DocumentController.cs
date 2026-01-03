@@ -1,13 +1,14 @@
 ﻿using BL.Services;
 using AutoMapper;
 using Core.DTOs;
+using Core.Exceptions;
 using Microsoft.AspNetCore.Mvc;
 using Core.Models;
 using Core.Interfaces;
 using FluentValidation;
 using FluentValidation.Results;
-using log4net;
-using System.Reflection;
+using Serilog;
+using Core.Exceptions;
 
 namespace API.Controllers;
 
@@ -15,246 +16,166 @@ namespace API.Controllers;
 [Route("api/[controller]")]
 public class DocumentController(DocumentService service, IStorageService storageService, IMapper mapper, IValidator<DocumentDto> validator) : ControllerBase
 {
-    private static readonly ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod()!.DeclaringType);
 
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
-        log.Info("DocumentController: GetAll called");
-
-        try
-        {
-            List<DocumentDto> documents = await service.GetAllDocumentsAsync();
-            log.Info($"DocumentController: Returned {documents.Count} documents");
-            return Ok(mapper.Map<List<DocumentDto>>(documents));
-        }
-        catch (Exception ex)
-        {
-            log.Error("DocumentController: Error in GetAll", ex);
-            return StatusCode(500, ex.Message);
-        }
+        Log.Information("DocumentController: GetAll called");
+        List<DocumentDto> documents = await service.GetAllDocumentsAsync();
+        return Ok(mapper.Map<List<DocumentDto>>(documents));
     }
 
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(int id)
     {
-        log.Info($"DocumentController: GetById called with id={id}");
+        Log.Information("DocumentController: GetById called with id={Id}", id);
+        DocumentDto? document = await service.GetDocumentByIdAsync(id);
+        if (document == null)
+            throw new EntityNotFoundException(nameof(Document), id);
 
-        try
-        {
-            DocumentDto? document = await service.GetDocumentByIdAsync(id);
-            if (document == null)
-            {
-                log.Warn($"DocumentController: No document found with id={id}");
-                return NotFound();
-            }
-
-            log.Info($"DocumentController: Found document with id={id}");
-            return Ok(mapper.Map<DocumentDto>(document));
-        }
-        catch (Exception ex)
-        {
-            log.Error($"DocumentController: Error in GetById id={id}", ex);
-            return StatusCode(500, ex.Message);
-        }
+        return Ok(mapper.Map<DocumentDto>(document));
     }
 
     [HttpGet("{id}/download")]
     public async Task<IActionResult> Download(int id)
     {
-        log.Info($"DocumentController: Download called for id={id}");
-        try
+        Log.Information("DocumentController: Download called for id={Id}", id);
+
+        DocumentDto? document = await service.GetDocumentByIdAsync(id);
+        if (document == null)
+            throw new EntityNotFoundException(nameof(Document), id);
+
+        if (string.IsNullOrEmpty(document.FilePath))
         {
-            DocumentDto? document = await service.GetDocumentByIdAsync(id);
-            if (document == null)
-            {
-                log.Warn($"DocumentController: Document {id} not found for download.");
-                return NotFound();
-            }
-
-            if (string.IsNullOrEmpty(document.FilePath))
-            {
-                log.Warn($"DocumentController: Document {id} has no file path.");
-                return NotFound("File path is missing.");
-            }
-
-            Stream stream = await storageService.GetFileAsync(document.FilePath);
-            // Determine content type based on extension or default to octet-stream/pdf
-            string contentType = "application/octet-stream";
-            string ext = Path.GetExtension(document.FileName).ToLowerInvariant();
-            if (ext == ".pdf") contentType = "application/pdf";
-            else if (ext == ".jpg" || ext == ".jpeg") contentType = "image/jpeg";
-            else if (ext == ".png") contentType = "image/png";
-            else if (ext == ".txt") contentType = "text/plain";
-
-            // Set Content-Disposition to inline to allow browser preview
-            System.Net.Mime.ContentDisposition cd = new System.Net.Mime.ContentDisposition
-            {
-                FileName = document.FileName,
-                Inline = true  // This forces the browser to try and open it
-            };
-            Response.Headers.Append("Content-Disposition", cd.ToString());
-
-            return File(stream, contentType);
+            Log.Warning("DocumentController: Document {Id} has no file path.", id);
+            return NotFound("File path is missing.");
         }
-        catch (Exception ex)
+
+        Stream stream = await storageService.GetFileAsync(document.FilePath);
+        // Determine content type based on extension or default to octet-stream/pdf
+        string contentType = "application/octet-stream";
+        string ext = Path.GetExtension(document.FileName).ToLowerInvariant();
+        
+        contentType = ext switch
         {
-            log.Error($"DocumentController: Error in Download id={id}", ex);
-            return StatusCode(500, ex.Message);
-        }
+            ".pdf" => "application/pdf",
+            ".jpg" or ".jpeg" => "image/jpeg",
+            ".png" => "image/png",
+            ".txt" => "text/plain",
+            _ => "application/octet-stream"
+        };
+
+        // Set Content-Disposition to inline to allow browser preview
+        System.Net.Mime.ContentDisposition cd = new System.Net.Mime.ContentDisposition
+        {
+            FileName = document.FileName,
+            Inline = true  // This forces the browser to try and open it
+        };
+        Response.Headers.Append("Content-Disposition", cd.ToString());
+
+        return File(stream, contentType);
     }
 
     [HttpPost]
     public async Task<IActionResult> Create([FromForm] DocumentUploadDto uploadDto)
     {
-        log.Info($"DocumentController: Create called for file={uploadDto.File.FileName}");
+        // 1. Validation (Should technically be in FluentValidation, but keeping rudimentary check)
+        if (uploadDto.File == null || uploadDto.File.Length == 0)
+            throw new DmsValidationException("No file uploaded.");
 
-        if (uploadDto.File.Length == 0)
+        Log.Information("DocumentController: Create called for file={FileName}", uploadDto.File.FileName);
+
+        // 2. Upload file to MinIO
+        string fileName = $"{DateTime.UtcNow.Year}/{DateTime.UtcNow.Month:D2}/{DateTime.UtcNow.Day:D2}/{Guid.NewGuid()}_{uploadDto.File.FileName}";
+        using (Stream stream = uploadDto.File.OpenReadStream())
         {
-            return BadRequest("No file uploaded.");
+            await storageService.UploadFileAsync(stream, fileName, uploadDto.File.ContentType);
         }
 
-        try
+        // 3. Create Document Entity
+        Document document = new Document
         {
-            // 1. Upload file to MinIO
-            string fileName = $"{DateTime.UtcNow.Year}/{DateTime.UtcNow.Month:D2}/{DateTime.UtcNow.Day:D2}/{Guid.NewGuid()}_{uploadDto.File.FileName}";
-            using (Stream stream = uploadDto.File.OpenReadStream())
+            FileName = uploadDto.Title ?? uploadDto.File.FileName,
+            FilePath = fileName,
+            UploadedAt = DateTime.UtcNow,
+            Tags = new List<Tag>()
+        };
+
+        if (uploadDto.Tags != null && uploadDto.Tags.Any())
+        {
+            foreach (string tag in uploadDto.Tags)
             {
-                await storageService.UploadFileAsync(stream, fileName, uploadDto.File.ContentType);
+                document.Tags.Add(new Tag { Name = tag });
             }
-
-            // 2. Create Document Entity
-            Document document = new Document
-            {
-                FileName = uploadDto.Title ?? uploadDto.File.FileName,
-                FilePath = fileName, // Store the object name/path in MinIO
-                UploadedAt = DateTime.UtcNow,
-                Tags = new List<Tag>() // Handle tags if provided
-            };
-
-            if (uploadDto.Tags != null && uploadDto.Tags.Any())
-            {
-                // In a real app, you might want to fetch existing tags or create new ones here.
-                // For now, we'll map string tags to Tag entities if possible or let Service handle it.
-                // Since DocumentService.AddDocumentAsync takes a Document, we'll let it be.
-                // Simplified: Just add them as new Tag objects for now.
-                foreach (string tag in uploadDto.Tags)
-                {
-                    document.Tags.Add(new Tag { Name = tag });
-                }
-            }
-
-            // 3. Save to DB (and publish RabbitMQ message)
-            DocumentDto created = await service.AddDocumentAsync(document);
-
-            log.Info($"DocumentController: Document created with id={created.Id}");
-            return CreatedAtAction(nameof(GetById), new { id = created.Id }, mapper.Map<DocumentDto>(created));
         }
-        catch (Exception ex)
-        {
-            log.Error("DocumentController: Error in Create", ex);
-            return StatusCode(500, ex.Message);
-        }
+
+        // 4. Save to DB (and publish RabbitMQ message)
+        // Note: Ideally we pass a CorrelationId to the Service -> Producer here.
+        // For now, let's assume the Service generates one if missing, or we add overloaded method.
+        // We will stick to the existing Service signature for now but ensure the PRODUCER adds it.
+        DocumentDto created = await service.AddDocumentAsync(document);
+
+        Log.Information("DocumentController: Document created with id={Id}", created.Id);
+        return CreatedAtAction(nameof(GetById), new { id = created.Id }, mapper.Map<DocumentDto>(created));
     }
 
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(int id, [FromBody] DocumentDto dto)
     {
-        log.Info($"DocumentController: Update called for id={id}");
+        Log.Information("DocumentController: Update called for id={Id}", id);
 
         if (id != dto.Id)
         {
-            log.Warn("DocumentController: ID mismatch in Update");
+            Log.Warning("DocumentController: ID mismatch in Update");
             return BadRequest("ID mismatch");
         }
 
         ValidationResult? validationResult = await validator.ValidateAsync(dto);
         if (!validationResult.IsValid)
         {
-            log.Warn($"DocumentController: Validation failed in Update for id={id}");
+            Log.Warning("DocumentController: Validation failed in Update for id={Id}", id);
             return BadRequest(validationResult.Errors);
         }
 
-        try
-        {
-            Document? model = mapper.Map<Document>(dto);
-            await service.UpdateDocumentAsync(model);
-            log.Info($"DocumentController: Document updated with id={id}");
-            return NoContent();
-        }
-        catch (Exception ex)
-        {
-            log.Error($"DocumentController: Error in Update id={id}", ex);
-            return StatusCode(500, ex.Message);
-        }
+        Document? model = mapper.Map<Document>(dto);
+        await service.UpdateDocumentAsync(model);
+        Log.Information("DocumentController: Document updated with id={Id}", id);
+        return NoContent();
     }
 
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id)
     {
-        log.Info($"DocumentController: Delete called for id={id}");
+        Log.Information("DocumentController: Delete called for id={Id}", id);
 
-        try
-        {
-            // Note: Should also delete from Storage, but keeping it simple for now
-            await service.DeleteDocumentAsync(id);
-            log.Info($"DocumentController: Document deleted with id={id}");
-            return NoContent();
-        }
-        catch (Exception ex)
-        {
-            log.Error($"DocumentController: Error in Delete id={id}", ex);
-            return StatusCode(500, ex.Message);
-        }
+        // Note: Should also delete from Storage, but keeping it simple for now
+        await service.DeleteDocumentAsync(id);
+        Log.Information("DocumentController: Document deleted with id={Id}", id);
+        return NoContent();
     }
 
     [HttpGet("search")]
     public async Task<IActionResult> Search([FromQuery] string keyword)
     {
-        log.Info($"DocumentController: Search called with keyword={keyword}");
-
-        try
-        {
-            List<DocumentDto> documents = await service.SearchDocumentsAsync(keyword);
-            log.Info($"DocumentController: Search returned {documents.Count} documents");
-            return Ok(mapper.Map<List<DocumentDto>>(documents));
-        }
-        catch (Exception ex)
-        {
-            log.Error($"DocumentController: Error in Search keyword={keyword}", ex);
-            return StatusCode(500, ex.Message);
-        }
+        Log.Information("DocumentController: Search called with keyword={Keyword}", keyword);
+        List<DocumentDto> documents = await service.SearchDocumentsAsync(keyword);
+        Log.Information("DocumentController: Search returned {Count} documents", documents.Count);
+        return Ok(mapper.Map<List<DocumentDto>>(documents));
     }
 
     [HttpPost("{id}/tags")]
     public async Task<IActionResult> AddTag(int id, [FromBody] TagDto tag)
     {
-        log.Info($"DocumentController: AddTag called for id={id} tag={tag.Name}");
-        try
-        {
-            await service.AddTagToDocumentAsync(id, tag);
-            return Ok();
-        }
-        catch (Exception ex)
-        {
-            log.Error($"DocumentController: Error adding tag to id={id}", ex);
-            return StatusCode(500, ex.Message);
-        }
+        Log.Information("DocumentController: AddTag called for id={Id} tag={TagName}", id, tag.Name);
+        await service.AddTagToDocumentAsync(id, tag);
+        return Ok();
     }
 
     [HttpDelete("{id}/tags/{tag}")]
     public async Task<IActionResult> RemoveTag(int id, string tag)
     {
-        log.Info($"DocumentController: RemoveTag called for id={id} tag={tag}");
-        try
-        {
-            await service.RemoveTagFromDocumentAsync(id, tag);
-            return Ok();
-        }
-        catch (Exception ex)
-        {
-            log.Error($"DocumentController: Error removing tag from id={id}", ex);
-            return StatusCode(500, ex.Message);
-        }
+        Log.Information("DocumentController: RemoveTag called for id={Id} tag={TagName}", id, tag);
+        await service.RemoveTagFromDocumentAsync(id, tag);
+        return Ok();
     }
 }

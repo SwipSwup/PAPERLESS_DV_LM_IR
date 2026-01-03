@@ -13,13 +13,18 @@ using Microsoft.EntityFrameworkCore;
 using Core.Interfaces;
 using DAL.Services;
 using Elastic.Clients.Elasticsearch;
+using Serilog;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 // --------------------
 // Configure Logging
 // --------------------
-log4net.Config.XmlConfigurator.Configure(new FileInfo("log4net.config"));
+Log.Logger = new LoggerConfiguration()
+    .WriteTo.Console()
+    .CreateLogger();
+
+builder.Host.UseSerilog();
 
 // --------------------
 // Configure Database
@@ -91,6 +96,8 @@ builder.Services.AddScoped<IValidator<TagDto>, TagDtoValidator>();
 // Add Swagger
 // --------------------
 builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddExceptionHandler<API.Middleware.GlobalExceptionHandler>();
+builder.Services.AddProblemDetails();
 builder.Services.AddSwaggerGen();
 
 // --------------------
@@ -126,7 +133,7 @@ WebApplication app = builder.Build();
 // --------------------
 // Configure Middleware
 // --------------------
-app.UseMiddleware<API.Middleware.ExceptionHandlingMiddleware>();
+app.UseExceptionHandler();
 
 if (app.Environment.IsDevelopment())
 {

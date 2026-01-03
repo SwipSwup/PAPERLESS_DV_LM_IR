@@ -5,21 +5,20 @@ using Core.Models;
 using Core.Repositories.Interfaces;
 using DAL.Models;
 using Microsoft.EntityFrameworkCore;
-using log4net;
-using System.Reflection;
+using Microsoft.Extensions.Logging;
 
 namespace DAL.Repositories.Implementations
 {
-    public class DocumentRepository(PaperlessDBContext context, IMapper mapper) : RepositoryBase, IDocumentRepository
+    public class DocumentRepository(PaperlessDBContext context, IMapper mapper, ILogger<DocumentRepository> logger) : RepositoryBase, IDocumentRepository
     {
-        private static readonly ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod()!.DeclaringType);
+        private readonly ILogger<DocumentRepository> _logger = logger;
 
         private readonly PaperlessDBContext _context = context ?? throw new ArgumentNullException(nameof(context));
         private readonly IMapper _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
 
         public Task<List<Document>> GetAllAsync()
         {
-            log.Info("DocumentRepository.GetAllAsync called");
+            _logger.LogInformation("DocumentRepository.GetAllAsync called");
             return ExecuteRepositoryActionAsync(async () =>
             {
                 List<DocumentEntity> entities = await _context.Documents
@@ -33,7 +32,7 @@ namespace DAL.Repositories.Implementations
 
         public Task<Document?> GetByIdAsync(int id)
         {
-            log.Info($"DocumentRepository.GetByIdAsync called for ID={id}");
+            _logger.LogInformation("DocumentRepository.GetByIdAsync called for ID={Id}", id);
             return ExecuteRepositoryActionAsync(async () =>
             {
                 DocumentEntity? entity = await _context.Documents
@@ -47,7 +46,7 @@ namespace DAL.Repositories.Implementations
 
         public Task AddAsync(Document model)
         {
-            log.Info($"DocumentRepository.AddAsync called for Document ID={model.Id}");
+            _logger.LogInformation("DocumentRepository.AddAsync called for Document ID={Id}", model.Id);
             return ExecuteRepositoryActionAsync(async () =>
             {
                 DocumentEntity? entity = _mapper.Map<DocumentEntity>(model);
@@ -59,7 +58,7 @@ namespace DAL.Repositories.Implementations
 
         public Task UpdateAsync(Document model)
         {
-            log.Info($"DocumentRepository.UpdateAsync called for Document ID={model.Id}");
+            _logger.LogInformation("DocumentRepository.UpdateAsync called for Document ID={Id}", model.Id);
             return ExecuteRepositoryActionAsync(async () =>
             {
                 DocumentEntity? entity = await _context.Documents
@@ -91,7 +90,7 @@ namespace DAL.Repositories.Implementations
                             tagEntity = await _context.Tags.FindAsync(tag.Id);
                             if (tagEntity == null)
                             {
-                                log.Warn($"Tag with ID {tag.Id} not found, creating new tag with name '{tag.Name}'");
+                                _logger.LogWarning("Tag with ID {Id} not found, creating new tag with name '{Name}'", tag.Id, tag.Name);
                                 tagEntity = null; // Will create new one below
                             }
                         }
@@ -111,7 +110,7 @@ namespace DAL.Repositories.Implementations
                                 Color = tag.Color
                             };
                             await _context.Tags.AddAsync(tagEntity);
-                            log.Info($"Created new tag '{tag.Name}' with color {tag.Color}");
+                            _logger.LogInformation("Created new tag '{Name}' with color {Color}", tag.Name, tag.Color);
                         }
                         else
                         {
@@ -119,7 +118,7 @@ namespace DAL.Repositories.Implementations
                             if (tag.Color != null && tagEntity.Color != tag.Color)
                             {
                                 tagEntity.Color = tag.Color;
-                                log.Info($"Updated tag '{tag.Name}' color to {tag.Color}");
+                                _logger.LogInformation("Updated tag '{Name}' color to {Color}", tag.Name, tag.Color);
                             }
                         }
 
@@ -141,7 +140,7 @@ namespace DAL.Repositories.Implementations
 
         public Task DeleteAsync(int id)
         {
-            log.Info($"DocumentRepository.DeleteAsync called for Document ID={id}");
+            _logger.LogInformation("DocumentRepository.DeleteAsync called for Document ID={Id}", id);
             return ExecuteRepositoryActionAsync(async () =>
             {
                 DocumentEntity? entity = await _context.Documents.FindAsync(id);
@@ -155,7 +154,7 @@ namespace DAL.Repositories.Implementations
 
         public Task<List<Document>> SearchDocumentsAsync(string keyword)
         {
-            log.Info($"DocumentRepository.SearchDocumentsAsync called with keyword='{keyword}'");
+            _logger.LogInformation("DocumentRepository.SearchDocumentsAsync called with keyword='{Keyword}'", keyword);
             return ExecuteRepositoryActionAsync(async () =>
             {
                 List<DocumentEntity> entities = await _context.Documents
@@ -170,7 +169,7 @@ namespace DAL.Repositories.Implementations
 
         public Task<List<AccessLog>> GetAccessLogsForDocumentAsync(int documentId)
         {
-            log.Info($"DocumentRepository.GetAccessLogsForDocumentAsync called for Document ID={documentId}");
+            _logger.LogInformation("DocumentRepository.GetAccessLogsForDocumentAsync called for Document ID={Id}", documentId);
             return ExecuteRepositoryActionAsync(async () =>
             {
                 List<AccessLogEntity> entities = await _context.AccessLogs
@@ -182,7 +181,7 @@ namespace DAL.Repositories.Implementations
 
         public Task<List<DocumentLog>> GetLogsForDocumentAsync(int documentId)
         {
-            log.Info($"DocumentRepository.GetLogsForDocumentAsync called for Document ID={documentId}");
+            _logger.LogInformation("DocumentRepository.GetLogsForDocumentAsync called for Document ID={Id}", documentId);
             return ExecuteRepositoryActionAsync(async () =>
             {
                 List<DocumentLogEntity> entities = await _context.DocumentLogs

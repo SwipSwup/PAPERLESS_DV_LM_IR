@@ -1,6 +1,8 @@
 using Core.Configuration;
 using Core.Exceptions;
 using DAL.Services;
+using Microsoft.Extensions.Logging;
+using Moq;
 using NUnit.Framework;
 
 namespace Tests.Unit.DAL.Services
@@ -23,7 +25,8 @@ namespace Tests.Unit.DAL.Services
             // Act & Assert
             // Note: This might verify that no exception is thrown during client creation logic 
             // even if connection fails later (MinioClient build is lazy or local).
-            Assert.DoesNotThrow(() => new MinioStorageService(settings));
+            Mock<ILogger<MinioStorageService>> mockLogger = new Mock<ILogger<MinioStorageService>>();
+            Assert.DoesNotThrow(() => new MinioStorageService(settings, mockLogger.Object));
         }
 
         [Test]

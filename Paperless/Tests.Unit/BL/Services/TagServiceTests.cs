@@ -4,7 +4,9 @@ using Core.Repositories.Interfaces;
 using Moq;
 using NUnit.Framework;
 using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
 namespace Tests.Unit.BL.Services
 {
@@ -12,13 +14,15 @@ namespace Tests.Unit.BL.Services
     public class TagServiceTests
     {
         private Mock<ITagRepository> _mockRepo;
+        private Mock<ILogger<TagService>> _mockLogger;
         private TagService _service;
 
         [SetUp]
         public void Setup()
         {
             _mockRepo = new Mock<ITagRepository>();
-            _service = new TagService(_mockRepo.Object);
+            _mockLogger = new Mock<ILogger<TagService>>();
+            _service = new TagService(_mockRepo.Object, _mockLogger.Object);
         }
 
         [Test]

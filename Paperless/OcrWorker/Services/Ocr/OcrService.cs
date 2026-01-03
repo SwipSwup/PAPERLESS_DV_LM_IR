@@ -1,4 +1,6 @@
-﻿using OcrWorker.Services.Pdf;
+﻿using System.Text;
+using Core.Exceptions;
+using OcrWorker.Services.Pdf;
 using OcrWorker.Services.Tesseract;
 
 namespace OcrWorker.Services.Ocr;
@@ -7,24 +9,42 @@ public class OcrService(ITesseractCliRunner tesseract, IPdfConverter pdfConverte
 {
     public async Task<string> ExtractTextFromPdfAsync(string pdfPath, CancellationToken ct)
     {
-        logger.LogInformation("Converting PDF to Image bytes...");
-        List<byte[]> pages = await pdfConverter.ConvertToPngBytesAsync(pdfPath, ct);
+        // 1. Validation
+        if (string.IsNullOrWhiteSpace(pdfPath))
+            throw new ArgumentNullException(nameof(pdfPath));
 
-        System.Text.StringBuilder fullText = new System.Text.StringBuilder();
+        // 2. Structured Logging
+        logger.LogInformation("Starting OCR extraction for file: {PdfPath}", pdfPath);
 
-        for (int i = 0; i < pages.Count; i++)
+        try
         {
-            logger.LogInformation("Running OCR on page {PageNumber}/{TotalPages}...", i + 1, pages.Count);
-            string pageText = await tesseract.RunOcrForImageAsync(pages[i], ct);
-            fullText.AppendLine(pageText);
-        }
+            // 3. Execution
+            logger.LogInformation("Converting PDF to Image bytes...");
+            List<byte[]> pages = await pdfConverter.ConvertToPngBytesAsync(pdfPath, ct);
 
-        string result = fullText.ToString();
-        logger.LogInformation("OCR Complete. Extracted {Length} characters.", result.Length);
-        if (string.IsNullOrWhiteSpace(result))
-        {
-            logger.LogWarning("OCR Result is empty or whitespace!");
+            StringBuilder fullText = new StringBuilder();
+
+            for (int i = 0; i < pages.Count; i++)
+            {
+                logger.LogDebug("Processing page {PageNumber}/{TotalPages}", i + 1, pages.Count);
+                string pageText = await tesseract.RunOcrForImageAsync(pages[i], ct);
+                fullText.AppendLine(pageText);
+            }
+
+            logger.LogInformation("OCR completed successfully. Total length: {Length}", fullText.Length);
+            
+            if (fullText.Length == 0)
+            {
+                logger.LogWarning("OCR Result is empty or whitespace for file {PdfPath}", pdfPath);
+            }
+            
+            return fullText.ToString();
         }
-        return result;
+        catch (Exception ex) when (ex is not DmsException) // Don't wrap if already wrapped
+        {
+            // Catch-all for Tesseract or System errors
+            logger.LogError(ex, "Critical failure in OCR Engine for file {PdfPath}", pdfPath);
+            throw new OcrGenerationException("OCR Engine failure", ex, isTransient: true);
+        }
     }
 }

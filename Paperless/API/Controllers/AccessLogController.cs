@@ -2,8 +2,7 @@
 using AutoMapper;
 using Core.DTOs;
 using Microsoft.AspNetCore.Mvc;
-using log4net;
-using System.Reflection;
+using Serilog;
 
 namespace API.Controllers;
 
@@ -11,47 +10,28 @@ namespace API.Controllers;
 [Route("api/[controller]")]
 public class AccessLogController(AccessLogService service, IMapper mapper) : ControllerBase
 {
-    private static readonly ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod()!.DeclaringType);
-
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
-        log.Info("AccessLogController: GetAll called");
-
-        try
-        {
-            List<AccessLogDto> logs = await service.GetAllAsync();
-            log.Info($"AccessLogController: Returned {logs.Count} logs");
-            return Ok(mapper.Map<List<AccessLogDto>>(logs));
-        }
-        catch (Exception ex)
-        {
-            log.Error("AccessLogController: Error in GetAll", ex);
-            return StatusCode(500, ex.Message);
-        }
+        Log.Information("AccessLogController: GetAll called");
+        List<AccessLogDto> logs = await service.GetAllAsync();
+        Log.Information("AccessLogController: Returned {Count} logs", logs.Count);
+        return Ok(mapper.Map<List<AccessLogDto>>(logs));
     }
 
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(int id)
     {
-        log.Info($"AccessLogController: GetById called with id={id}");
+        Log.Information("AccessLogController: GetById called with id={Id}", id);
 
-        try
+        AccessLogDto? logDto = await service.GetByIdAsync(id);
+        if (logDto == null)
         {
-            AccessLogDto? logDto = await service.GetByIdAsync(id);
-            if (logDto == null)
-            {
-                log.Warn($"AccessLogController: No log found with id={id}");
-                return NotFound();
-            }
+            Log.Warning("AccessLogController: No log found with id={Id}", id);
+            return NotFound();
+        }
 
-            log.Info($"AccessLogController: Found log with id={id}");
-            return Ok(mapper.Map<AccessLogDto>(logDto));
-        }
-        catch (Exception ex)
-        {
-            log.Error($"AccessLogController: Error in GetById id={id}", ex);
-            return StatusCode(500, ex.Message);
-        }
+        Log.Information("AccessLogController: Found log with id={Id}", id);
+        return Ok(mapper.Map<AccessLogDto>(logDto));
     }
 }

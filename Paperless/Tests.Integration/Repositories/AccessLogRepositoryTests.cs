@@ -7,6 +7,7 @@ using DAL.Repositories.Implementations;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Xunit;
 
@@ -29,7 +30,7 @@ namespace Tests.Integration.Repositories
             MapperConfiguration config = new MapperConfiguration(cfg => cfg.AddProfile<DalMappingProfile>());
             _mapper = config.CreateMapper();
 
-            _repository = new AccessLogRepository(_context, _mapper);
+            _repository = new AccessLogRepository(_context, _mapper, NullLogger<AccessLogRepository>.Instance);
         }
 
         [Fact]

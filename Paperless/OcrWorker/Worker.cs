@@ -30,10 +30,24 @@ public class Worker(
                 // Consumer started successfully, keep alive
                 await Task.Delay(Timeout.Infinite, stoppingToken);
             }
+            catch (OperationCanceledException)
+            {
+                // Graceful shutdown
+                logger.LogInformation("Worker stopping...");
+                break;
+            }
             catch (Exception ex)
             {
                 logger.LogError(ex, "Failed to start consumer. Retrying in 5 seconds...");
-                await Task.Delay(5000, stoppingToken);
+                try
+                {
+                    await Task.Delay(5000, stoppingToken);
+                }
+                catch (OperationCanceledException)
+                {
+                    logger.LogInformation("Worker stopping during retry delay...");
+                    break;
+                }
             }
         }
     }
@@ -42,8 +56,6 @@ public class Worker(
     {
         logger.LogInformation("Processing document {id}", msg.DocumentId);
 
-        try
-        {
             using (IServiceScope scope = serviceProvider.CreateScope())
             {
                 // Resolve scoped services here
@@ -86,11 +98,5 @@ public class Worker(
             }
 
             logger.LogInformation("OCR finished for {id}", msg.DocumentId);
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Failed to process document {id}", msg.DocumentId);
-            // Optionally: nack or dead-letter
-        }
     }
 }

@@ -17,13 +17,14 @@ namespace BL.Services
             {
                 SearchResponse<DocumentDto> response = await elasticClient.SearchAsync<DocumentDto>(s => s
                     .Index(IndexName)
+                    .Size(20) // TODO: Make dynamic
                     .Query(q => q
                         .Bool(b => b
                             .Should(
                                 s => s.Match(m => m
                                     .Field(d => d.OcrText)
                                     .Query(searchTerm)
-                                    .Fuzziness(new Fuzziness("2"))
+                                    .Fuzziness(new Fuzziness("AUTO"))
                                 ),
                                 s => s.Match(m => m
                                     .Field(d => d.FileName)

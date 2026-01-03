@@ -6,6 +6,7 @@ using DAL.Models;
 using DAL.Repositories.Implementations;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
 namespace Tests.Integration.Repositories
@@ -27,7 +28,7 @@ namespace Tests.Integration.Repositories
             MapperConfiguration config = new MapperConfiguration(cfg => cfg.AddProfile<DalMappingProfile>());
             _mapper = config.CreateMapper();
 
-            _repository = new DocumentRepository(_context, _mapper);
+            _repository = new DocumentRepository(_context, _mapper, NullLogger<DocumentRepository>.Instance);
         }
 
         [Fact]

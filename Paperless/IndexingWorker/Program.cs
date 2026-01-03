@@ -7,7 +7,19 @@ using Core.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Elastic.Clients.Elasticsearch;
 
-var builder = Host.CreateApplicationBuilder(args);
+using Serilog;
+
+// Configure Serilog
+Log.Logger = new LoggerConfiguration()
+    .WriteTo.Console()
+    .CreateLogger();
+
+try {
+    var builder = Host.CreateApplicationBuilder(args);
+    
+    // Remove default logging providers
+    builder.Logging.ClearProviders();
+    builder.Services.AddSerilog();
 
 // Config
 builder.Services.Configure<RabbitMqSettings>(builder.Configuration.GetSection("RabbitMq"));
@@ -37,5 +49,14 @@ builder.Services.AddSingleton<ElasticsearchClient>(sp =>
 // Worker
 builder.Services.AddHostedService<Worker>();
 
-var host = builder.Build();
-host.Run();
+    var host = builder.Build();
+    host.Run();
+}
+catch (Exception ex)
+{
+    Log.Fatal(ex, "Application terminated unexpectedly");
+}
+finally
+{
+    Log.CloseAndFlush();
+}

@@ -1,26 +1,26 @@
 using Core.Configuration;
 using Core.Exceptions;
 using Core.Interfaces;
-using log4net;
+using Microsoft.Extensions.Logging;
 using Minio;
 using Minio.DataModel.Args;
-using System.Reflection;
 
 namespace DAL.Services
 {
     public class MinioStorageService : IStorageService
     {
-        private static readonly ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod()!.DeclaringType);
+        private readonly ILogger<MinioStorageService> _logger;
         private readonly IMinioClient _minioClient;
         private readonly string _bucketName;
 
-        public MinioStorageService(MinioSettings settings)
+        public MinioStorageService(MinioSettings settings, ILogger<MinioStorageService> logger)
         {
+            _logger = logger;
             _bucketName = settings.BucketName;
 
             try
             {
-                log.Info($"MinioStorageService: Initializing connection to {settings.Endpoint}");
+                _logger.LogInformation("MinioStorageService: Initializing connection to {Endpoint}", settings.Endpoint);
                 _minioClient = new MinioClient()
                     .WithEndpoint(settings.Endpoint)
                     .WithCredentials(settings.AccessKey, settings.SecretKey)
@@ -39,9 +39,9 @@ namespace DAL.Services
                 bool found = await _minioClient.BucketExistsAsync(new BucketExistsArgs().WithBucket(_bucketName));
                 if (!found)
                 {
-                    log.Info($"MinioStorageService: Bucket '{_bucketName}' not found. Creating...");
+                    _logger.LogInformation("MinioStorageService: Bucket '{Bucket}' not found. Creating...", _bucketName);
                     await _minioClient.MakeBucketAsync(new MakeBucketArgs().WithBucket(_bucketName));
-                    log.Info($"MinioStorageService: Bucket '{_bucketName}' created.");
+                    _logger.LogInformation("MinioStorageService: Bucket '{Bucket}' created.", _bucketName);
                 }
             }
             catch (Exception ex)
@@ -56,7 +56,7 @@ namespace DAL.Services
 
             try
             {
-                log.Info($"MinioStorageService: Uploading '{fileName}' to bucket '{_bucketName}'");
+                _logger.LogInformation("MinioStorageService: Uploading '{FileName}' to bucket '{Bucket}'", fileName, _bucketName);
 
                 // Reset stream position if needed
                 if (fileStream.Position > 0)
@@ -71,7 +71,7 @@ namespace DAL.Services
 
                 await _minioClient.PutObjectAsync(putObjectArgs);
 
-                log.Info($"MinioStorageService: Uploaded '{fileName}' successfully.");
+                _logger.LogInformation("MinioStorageService: Uploaded '{FileName}' successfully.", fileName);
 
                 // Return the object name (or path)
                 return fileName;
@@ -86,7 +86,7 @@ namespace DAL.Services
         {
             await EnsureBucketExistsAsync();
 
-            log.Info($"MinioStorageService: Retrieving '{filePath}' from bucket '{_bucketName}'");
+            _logger.LogInformation("MinioStorageService: Retrieving '{FilePath}' from bucket '{Bucket}'", filePath, _bucketName);
 
             MemoryStream memoryStream = new MemoryStream();
 
@@ -113,7 +113,7 @@ namespace DAL.Services
         public async Task DeleteFileAsync(string filePath)
         {
             await EnsureBucketExistsAsync();
-            log.Info($"MinioStorageService: Deleting '{filePath}' from bucket '{_bucketName}'");
+            _logger.LogInformation("MinioStorageService: Deleting '{FilePath}' from bucket '{Bucket}'", filePath, _bucketName);
 
             try
             {
@@ -122,7 +122,7 @@ namespace DAL.Services
                     .WithObject(filePath);
 
                 await _minioClient.RemoveObjectAsync(args);
-                log.Info($"MinioStorageService: Deleted '{filePath}' successfully.");
+                _logger.LogInformation("MinioStorageService: Deleted '{FilePath}' successfully.", filePath);
             }
             catch (Exception ex)
             {

@@ -14,7 +14,7 @@ namespace GenAIWorker.Services
         : IGenAIService
     {
         private readonly GenAISettings _settings = settings.Value;
-        private const string BaseUrl = "https://generativelanguage.googleapis.com/v1beta";
+        private const string BaseUrl = "https://generativelanguage.googleapis.com/v1";
         private const int MaxTextLength = 30000;
         private const int MaxTagLength = 100;
 
@@ -189,6 +189,9 @@ namespace GenAIWorker.Services
                      
                      if (modelList?.Models != null)
                      {
+                         var modelNames = modelList.Models.Select(m => m.Name).ToList();
+                         logger.LogInformation("Available GenAI models: {models}", string.Join(", ", modelNames));
+
                          GeminiModel? preferredModel = modelList.Models
                              .FirstOrDefault(m => 
                                  m.Name != null &&
@@ -203,12 +206,20 @@ namespace GenAIWorker.Services
                              logger.LogInformation("Discovered preferred model: {model}", modelName);
                              return modelName;
                          }
+                         else 
+                         {
+                             logger.LogWarning("No suitable Gemini model found in list. Falling back to configured model.");
+                         }
                      }
+                 }
+                 else
+                 {
+                      logger.LogWarning("Failed to list models. Status: {status}", listResponse.StatusCode);
                  }
              }
              catch (Exception ex)
              {
-                 logger.LogWarning(ex, "Could not list available models, falling back to configured model");
+                 logger.LogError(ex, "Could not list available models, falling back to configured model");
              }
 
              return _settings.Model;

@@ -4,21 +4,20 @@ using Core.Models;
 using Core.Repositories.Interfaces;
 using DAL.Models;
 using Microsoft.EntityFrameworkCore;
-using log4net;
-using System.Reflection;
+using Microsoft.Extensions.Logging;
 
 namespace DAL.Repositories.Implementations
 {
-    public class TagRepository(PaperlessDBContext context, IMapper mapper) : RepositoryBase, ITagRepository
+    public class TagRepository(PaperlessDBContext context, IMapper mapper, ILogger<TagRepository> logger) : RepositoryBase, ITagRepository
     {
-        private static readonly ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod()!.DeclaringType);
+        private readonly ILogger<TagRepository> _logger = logger;
 
         private readonly PaperlessDBContext _context = context ?? throw new ArgumentNullException(nameof(context));
         private readonly IMapper _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
 
         public Task<List<Tag>> GetAllAsync()
         {
-            log.Info("TagRepository.GetAllAsync called");
+            _logger.LogInformation("TagRepository.GetAllAsync called");
             return ExecuteRepositoryActionAsync(async () =>
             {
                 List<TagEntity> entities = await _context.Tags.ToListAsync();
@@ -28,7 +27,7 @@ namespace DAL.Repositories.Implementations
 
         public Task<Tag?> GetByIdAsync(int id)
         {
-            log.Info($"TagRepository.GetByIdAsync called for ID={id}");
+            _logger.LogInformation("TagRepository.GetByIdAsync called for ID={Id}", id);
             return ExecuteRepositoryActionAsync(async () =>
             {
                 TagEntity? entity = await _context.Tags
@@ -39,7 +38,7 @@ namespace DAL.Repositories.Implementations
 
         public Task AddAsync(Tag model)
         {
-            log.Info($"TagRepository.AddAsync called for Tag ID={model.Id}");
+            _logger.LogInformation("TagRepository.AddAsync called for Tag ID={Id}", model.Id);
             return ExecuteRepositoryActionAsync(async () =>
             {
                 TagEntity? entity = _mapper.Map<TagEntity>(model);
@@ -51,7 +50,7 @@ namespace DAL.Repositories.Implementations
 
         public Task UpdateAsync(Tag model)
         {
-            log.Info($"TagRepository.UpdateAsync called for Tag ID={model.Id}");
+            _logger.LogInformation("TagRepository.UpdateAsync called for Tag ID={Id}", model.Id);
             return ExecuteRepositoryActionAsync(async () =>
             {
                 TagEntity? entity = await _context.Tags.FindAsync(model.Id);
@@ -65,7 +64,7 @@ namespace DAL.Repositories.Implementations
 
         public Task DeleteAsync(int id)
         {
-            log.Info($"TagRepository.DeleteAsync called for Tag ID={id}");
+            _logger.LogInformation("TagRepository.DeleteAsync called for Tag ID={Id}", id);
             return ExecuteRepositoryActionAsync(async () =>
             {
                 TagEntity? entity = await _context.Tags.FindAsync(id);
@@ -79,7 +78,7 @@ namespace DAL.Repositories.Implementations
 
         public Task<List<Tag>> SearchTagsAsync(string keyword)
         {
-            log.Info($"TagRepository.SearchTagsAsync called with keyword='{keyword}'");
+            _logger.LogInformation("TagRepository.SearchTagsAsync called with keyword='{Keyword}'", keyword);
             return ExecuteRepositoryActionAsync(async () =>
             {
                 List<TagEntity> entities = await _context.Tags

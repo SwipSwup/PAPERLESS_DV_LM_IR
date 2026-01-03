@@ -5,14 +5,13 @@ using Core.Messaging;
 using Core.Models;
 using Core.Repositories.Interfaces;
 using Core.Interfaces;
-using log4net;
-using System.Reflection;
+using Microsoft.Extensions.Logging;
 
 namespace BL.Services
 {
     public class DocumentService
     {
-        private static readonly ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod()!.DeclaringType);
+        private readonly ILogger<DocumentService> _logger;
 
         private readonly IDocumentRepository _documentRepo;
         private readonly IAccessLogRepository _accessLogRepo;
@@ -27,7 +26,8 @@ namespace BL.Services
             IDocumentLogRepository documentLogRepo,
             IMapper mapper,
             IDocumentMessageProducer producer,
-            ISearchService searchService)
+            ISearchService searchService,
+            ILogger<DocumentService> logger)
         {
             _documentRepo = documentRepo ?? throw new ArgumentNullException(nameof(documentRepo));
             _accessLogRepo = accessLogRepo ?? throw new ArgumentNullException(nameof(accessLogRepo));
@@ -35,14 +35,15 @@ namespace BL.Services
             _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
             _producer = producer ?? throw new ArgumentNullException(nameof(producer));
             _searchService = searchService ?? throw new ArgumentNullException(nameof(searchService));
+            _logger = logger;
 
-            log.Info("DocumentService initialized");
+            _logger.LogInformation("DocumentService initialized");
         }
 
         // --- CRUD Operations ---
         public async Task<List<DocumentDto>> GetAllDocumentsAsync()
         {
-            log.Info("DocumentService.GetAllDocumentsAsync called");
+            _logger.LogInformation("DocumentService.GetAllDocumentsAsync called");
             try
             {
                 List<Document> documents = await _documentRepo.GetAllAsync();
@@ -56,7 +57,7 @@ namespace BL.Services
 
         public async Task<DocumentDto?> GetDocumentByIdAsync(int id)
         {
-            log.Info($"DocumentService.GetDocumentByIdAsync called with ID={id}");
+            _logger.LogInformation("DocumentService.GetDocumentByIdAsync called with ID={Id}", id);
             try
             {
                 Document? document = await _documentRepo.GetByIdAsync(id);
@@ -70,7 +71,7 @@ namespace BL.Services
 
         public async Task<DocumentDto> AddDocumentAsync(Document document)
         {
-            log.Info($"DocumentService.AddDocumentAsync called for Document ID={document.Id}");
+            _logger.LogInformation("DocumentService.AddDocumentAsync called for Document ID={Id}", document.Id);
             try
             {
                 await _documentRepo.AddAsync(document);
@@ -82,7 +83,7 @@ namespace BL.Services
 
             try
             {
-                log.Info($"DocumentService: Publishing message for Document ID={document.Id}");
+                _logger.LogInformation("DocumentService: Publishing message for Document ID={Id}", document.Id);
                 await _producer.PublishDocumentAsync(new DocumentMessageDto
                 {
                     DocumentId = document.Id,
@@ -90,7 +91,7 @@ namespace BL.Services
                     FileName = document.FileName,
                     UploadedAt = document.UploadedAt
                 });
-                log.Info($"DocumentService: Published message for Document ID={document.Id}");
+                _logger.LogInformation("DocumentService: Published message for Document ID={Id}", document.Id);
             }
             catch (MessagingException ex)
             {
@@ -102,7 +103,7 @@ namespace BL.Services
 
         public async Task<DocumentDto> UpdateDocumentAsync(Document document)
         {
-            log.Info($"DocumentService.UpdateDocumentAsync called for Document ID={document.Id}");
+            _logger.LogInformation("DocumentService.UpdateDocumentAsync called for Document ID={Id}", document.Id);
             try
             {
                 await _documentRepo.UpdateAsync(document);
@@ -116,13 +117,13 @@ namespace BL.Services
 
         public async Task<bool> DeleteDocumentAsync(int id)
         {
-            log.Info($"DocumentService.DeleteDocumentAsync called for ID={id}");
+            _logger.LogInformation("DocumentService.DeleteDocumentAsync called for ID={Id}", id);
             try
             {
                 Document? existing = await _documentRepo.GetByIdAsync(id);
                 if (existing == null)
                 {
-                    log.Warn($"DocumentService.DeleteDocumentAsync: Document ID={id} not found");
+                    _logger.LogWarning("DocumentService.DeleteDocumentAsync: Document ID={Id} not found", id);
                     return false;
                 }
 
@@ -137,7 +138,7 @@ namespace BL.Services
 
         public async Task<List<DocumentDto>> SearchDocumentsAsync(string keyword)
         {
-            log.Info($"DocumentService.SearchDocumentsAsync called with keyword='{keyword}'");
+            _logger.LogInformation("DocumentService.SearchDocumentsAsync called with keyword='{Keyword}'", keyword);
             try
             {
                 IEnumerable<DocumentDto> dtos = await _searchService.SearchDocumentsAsync(keyword);
@@ -152,7 +153,7 @@ namespace BL.Services
         // --- Business Logic ---
         public async Task LogAccessAsync(int documentId, DateTime date)
         {
-            log.Info($"DocumentService.LogAccessAsync called for Document ID={documentId} Date={date:yyyy-MM-dd}");
+            _logger.LogInformation("DocumentService.LogAccessAsync called for Document ID={Id} Date={Date}", documentId, date.ToString("yyyy-MM-dd"));
             try
             {
                 List<AccessLog> logs = await _accessLogRepo.GetByDocumentIdAsync(documentId);
@@ -181,7 +182,7 @@ namespace BL.Services
 
         public async Task AddLogToDocumentAsync(int documentId, string action, string? details = null)
         {
-            log.Info($"DocumentService.AddLogToDocumentAsync called for Document ID={documentId} Action='{action}'");
+            _logger.LogInformation("DocumentService.AddLogToDocumentAsync called for Document ID={Id} Action='{Action}'", documentId, action);
             try
             {
                 DocumentLog logEntry = new DocumentLog
@@ -201,13 +202,13 @@ namespace BL.Services
 
         public async Task AddTagToDocumentAsync(int documentId, TagDto tagDto)
         {
-            log.Info($"DocumentService.AddTagToDocumentAsync called for Document ID={documentId} Tag='{tagDto.Name}'");
+            _logger.LogInformation("DocumentService.AddTagToDocumentAsync called for Document ID={Id} Tag='{TagName}'", documentId, tagDto.Name);
             try
             {
                 Document? document = await _documentRepo.GetByIdAsync(documentId);
                 if (document == null)
                 {
-                    log.Warn($"DocumentService.AddTagToDocumentAsync: Document ID={documentId} not found");
+                    _logger.LogWarning("DocumentService.AddTagToDocumentAsync: Document ID={Id} not found", documentId);
                     return;
                 }
 
@@ -225,13 +226,13 @@ namespace BL.Services
 
         public async Task RemoveTagFromDocumentAsync(int documentId, string tagName)
         {
-            log.Info($"DocumentService.RemoveTagFromDocumentAsync called for Document ID={documentId} Tag='{tagName}'");
+            _logger.LogInformation("DocumentService.RemoveTagFromDocumentAsync called for Document ID={Id} Tag='{TagName}'", documentId, tagName);
             try
             {
                 Document? document = await _documentRepo.GetByIdAsync(documentId);
                 if (document == null)
                 {
-                    log.Warn($"DocumentService.RemoveTagFromDocumentAsync: Document ID={documentId} not found");
+                    _logger.LogWarning("DocumentService.RemoveTagFromDocumentAsync: Document ID={Id} not found", documentId);
                     return;
                 }
 

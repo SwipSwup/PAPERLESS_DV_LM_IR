@@ -4,14 +4,13 @@ using AutoMapper;
 using Core.Exceptions;
 using Core.Models;
 using Core.Repositories.Interfaces;
-using log4net;
-using System.Reflection;
+using Microsoft.Extensions.Logging;
 
 namespace DAL.Repositories.Implementations
 {
-    public class AccessLogRepository(PaperlessDBContext context, IMapper mapper) : RepositoryBase, IAccessLogRepository
+    public class AccessLogRepository(PaperlessDBContext context, IMapper mapper, ILogger<AccessLogRepository> logger) : RepositoryBase, IAccessLogRepository
     {
-        private static readonly ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod()!.DeclaringType);
+        private readonly ILogger<AccessLogRepository> _logger = logger;
 
 
         private readonly PaperlessDBContext _context = context ?? throw new ArgumentNullException(nameof(context));
@@ -19,7 +18,7 @@ namespace DAL.Repositories.Implementations
 
         public Task<List<AccessLog>> GetAllAsync()
         {
-            log.Info("AccessLogRepository.GetAllAsync called");
+            _logger.LogInformation("AccessLogRepository.GetAllAsync called");
             return ExecuteRepositoryActionAsync(async () =>
             {
                 List<AccessLogEntity> entities = await _context.AccessLogs.Include(a => a.DocumentEntity).ToListAsync();
@@ -29,7 +28,7 @@ namespace DAL.Repositories.Implementations
 
         public Task<AccessLog?> GetByIdAsync(int id)
         {
-            log.Info($"AccessLogRepository.GetByIdAsync called for ID={id}");
+            _logger.LogInformation("AccessLogRepository.GetByIdAsync called for ID={Id}", id);
             return ExecuteRepositoryActionAsync(async () =>
             {
                 AccessLogEntity? entity = await _context.AccessLogs
@@ -42,7 +41,7 @@ namespace DAL.Repositories.Implementations
 
         public Task AddAsync(AccessLog model)
         {
-            log.Info($"AccessLogRepository.AddAsync called for Document ID={model.Id}");
+            _logger.LogInformation("AccessLogRepository.AddAsync called for Document ID={Id}", model.Id);
             return ExecuteRepositoryActionAsync(async () =>
             {
                 AccessLogEntity? entity = _mapper.Map<AccessLogEntity>(model);
@@ -54,7 +53,7 @@ namespace DAL.Repositories.Implementations
 
         public Task UpdateAsync(AccessLog model)
         {
-            log.Info($"AccessLogRepository.UpdateAsync called for AccessLog ID={model.Id}");
+            _logger.LogInformation("AccessLogRepository.UpdateAsync called for AccessLog ID={Id}", model.Id);
             return ExecuteRepositoryActionAsync(async () =>
             {
                 AccessLogEntity? entity = await _context.AccessLogs.FindAsync(model.Id);
@@ -68,7 +67,7 @@ namespace DAL.Repositories.Implementations
 
         public Task DeleteAsync(int id)
         {
-            log.Info($"AccessLogRepository.DeleteAsync called for AccessLog ID={id}");
+            _logger.LogInformation("AccessLogRepository.DeleteAsync called for AccessLog ID={Id}", id);
             return ExecuteRepositoryActionAsync(async () =>
             {
                 AccessLogEntity? entity = await _context.AccessLogs.FindAsync(id);
@@ -82,7 +81,7 @@ namespace DAL.Repositories.Implementations
 
         public Task<List<AccessLog>> GetByDocumentIdAsync(int documentId)
         {
-            log.Info($"AccessLogRepository.GetByDocumentIdAsync called for Document ID={documentId}");
+            _logger.LogInformation("AccessLogRepository.GetByDocumentIdAsync called for Document ID={Id}", documentId);
             return ExecuteRepositoryActionAsync(async () =>
             {
                 List<AccessLogEntity> entities = await _context.AccessLogs

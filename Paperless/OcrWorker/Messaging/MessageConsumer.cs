@@ -4,6 +4,7 @@ using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System.Text;
 using System.Text.Json;
+using Core.Exceptions;
 
 namespace OcrWorker.Messaging
 {
@@ -24,7 +25,7 @@ namespace OcrWorker.Messaging
         {
             await EnsureConnectedAsync();
 
-            await _channel!.BasicQosAsync(0, 1, false);
+            await _channel!.BasicQosAsync(0, 1, false, ct);
 
             _consumer = new OcrConsumer<T>(_channel!, logger, onMessage, ct);
 
@@ -54,12 +55,18 @@ namespace OcrWorker.Messaging
             };
 
             _connection = await factory.CreateConnectionAsync();
-            _connection.ConnectionShutdownAsync += async (o, e) =>
+            _connection.ConnectionShutdownAsync += (_, e) =>
+            {
                 logger.LogWarning("RabbitMQ Connection Shutdown: {Reason}", e.ReplyText);
+                return Task.CompletedTask;
+            };
 
             _channel = await _connection.CreateChannelAsync();
-            _channel.ChannelShutdownAsync += async (o, e) =>
+            _channel.ChannelShutdownAsync += (_, e) =>
+            {
                 logger.LogWarning("RabbitMQ Channel Shutdown: {Reason}", e.ReplyText);
+                return Task.CompletedTask;
+            };
 
             await _channel.QueueDeclareAsync(
                 queue: _settings.QueueName,
@@ -95,31 +102,54 @@ namespace OcrWorker.Messaging
                 ReadOnlyMemory<byte> body,
                 CancellationToken cancellationToken)
             {
-                logger.LogInformation("Message received! Tag: {Tag}", deliveryTag);
+                // 1. Extract Correlation ID
+                string correlationId = properties.Headers != null && properties.Headers.TryGetValue("X-Correlation-Id", out object? headerVal) && headerVal is byte[] bytes
+                    ? Encoding.UTF8.GetString(bytes)
+                    : Guid.NewGuid().ToString();
 
-                try
+                // 2. Push Log Context
+                using (logger.BeginScope(new Dictionary<string, object> { ["CorrelationId"] = correlationId }))
                 {
-                    string json = Encoding.UTF8.GetString(body.Span);
-                    logger.LogDebug("Message Body: {Body}", json);
+                    logger.LogInformation("Message received! Tag: {Tag}", deliveryTag);
 
-                    T? message = JsonSerializer.Deserialize<T>(json);
-
-                    if (message == null)
+                    try
                     {
-                        logger.LogWarning("Received null message - Nacking");
-                        await Channel.BasicNackAsync(deliveryTag, false, false, appToken);
-                        return;
+                        string json = Encoding.UTF8.GetString(body.Span);
+                        logger.LogDebug("Message Body: {Body}", json);
+
+                        T? message = JsonSerializer.Deserialize<T>(json);
+
+                        if (message == null)
+                        {
+                            logger.LogWarning("Received null message - Nacking");
+                            await Channel.BasicNackAsync(deliveryTag, false, false, appToken);
+                            return;
+                        }
+
+                        // Inject CorrelationId into message if applicable (reflection or interface)
+                         if (message is Core.DTOs.DocumentMessageDto docMsg)
+                         {
+                             docMsg.CorrelationId = correlationId;
+                         }
+
+                        await onMessage(message, deliveryTag, appToken);
+
+                        await Channel.BasicAckAsync(deliveryTag, false, appToken);
+                        logger.LogInformation("Message acknowledged. Tag: {Tag}", deliveryTag);
                     }
-
-                    await onMessage(message, deliveryTag, appToken);
-
-                    await Channel.BasicAckAsync(deliveryTag, false, appToken);
-                    logger.LogInformation("Message acknowledged. Tag: {Tag}", deliveryTag);
-                }
-                catch (Exception ex)
-                {
-                    logger.LogError(ex, "Error processing message");
-                    await Channel.BasicNackAsync(deliveryTag, false, true, appToken);
+                    catch (InfrastructureException ex) when (ex.IsTransient)
+                    {
+                        logger.LogWarning(ex, "Transient failure (Database/Network). Requeueing message.");
+                        // 3. Requeue for Retry
+                        await Channel.BasicNackAsync(deliveryTag, false, true, appToken);
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogError(ex, "Fatal error or Validation failure. Sending to Dead Letter Queue.");
+                        // 4. Dead Letter (Reject without requeue)
+                        // Note: Requires DLQ configuration in RabbitMQ to preserve message, otherwise it's lost.
+                        await Channel.BasicNackAsync(deliveryTag, false, false, appToken);
+                    }
                 }
             }
 

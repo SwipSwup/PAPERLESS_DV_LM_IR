@@ -36,10 +36,23 @@ public class Worker(
 
                 await Task.Delay(Timeout.Infinite, stoppingToken);
             }
+            catch (OperationCanceledException)
+            {
+                logger.LogInformation("Indexing Worker stopping...");
+                break;
+            }
             catch (Exception ex)
             {
                 logger.LogError(ex, "Failed to start consumer. Retrying...");
-                await Task.Delay(5000, stoppingToken);
+                try
+                {
+                    await Task.Delay(5000, stoppingToken);
+                }
+                catch (OperationCanceledException)
+                {
+                    logger.LogInformation("Indexing Worker stopping during retry delay...");
+                    break;
+                }
             }
         }
     }

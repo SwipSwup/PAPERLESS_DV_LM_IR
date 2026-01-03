@@ -1,12 +1,10 @@
 ﻿using System.Diagnostics;
-using OcrWorker.Services.Tesseract;
 using OcrWorker.Utils;
 
-namespace PaperlessServices.OcrWorker.Ocr;
+namespace OcrWorker.Services.Tesseract;
 
 public sealed class TesseractCliRunner(
     ILogger<TesseractCliRunner> logger,
-    ITempFileUtility tmpUtility,
     IConfiguration configuration)
     : ITesseractCliRunner
 {
@@ -20,9 +18,6 @@ public sealed class TesseractCliRunner(
         string inputPdfPath,
         CancellationToken cancellationToken)
     {
-        string tempDir = tmpUtility.CreateTempDirectory("tesseract");
-        string tempFile = tmpUtility.CreateTempFile(tempDir, "txt");
-
         ArgumentException.ThrowIfNullOrWhiteSpace(inputPdfPath);
 
         logger.LogInformation("Starting OCR on file: {File}", inputPdfPath);
@@ -30,23 +25,20 @@ public sealed class TesseractCliRunner(
         ProcessStartInfo processStartInfo = new ProcessStartInfo
         {
             FileName = _tesseractExecutablePath,
-            Arguments = $"\"{inputPdfPath}\" \"{Path.ChangeExtension(tempFile, null)}\" --dpi 300",
+            Arguments = $"\"{inputPdfPath}\" stdout --dpi 300",
             RedirectStandardError = true,
             RedirectStandardOutput = true,
             UseShellExecute = false,
             CreateNoWindow = true
         };
 
-        return await ExecuteTesseractAsync(processStartInfo, tempFile, cancellationToken);
+        return await ExecuteTesseractAsync(processStartInfo, cancellationToken);
     }
 
     public async Task<string> RunOcrForImageAsync(
         byte[] imageBytes,
         CancellationToken cancellationToken)
     {
-        string tempDir = tmpUtility.CreateTempDirectory("tesseract_bytes");
-        string tempFile = tmpUtility.CreateTempFile(tempDir, "txt");
-
         if (imageBytes == null || imageBytes.Length == 0)
             throw new ArgumentException("Image bytes cannot be empty.", nameof(imageBytes));
 
@@ -55,8 +47,7 @@ public sealed class TesseractCliRunner(
         ProcessStartInfo processStartInfo = new ProcessStartInfo
         {
             FileName = _tesseractExecutablePath,
-            // 'stdin' tells Tesseract to read from StandardInput
-            Arguments = $"stdin \"{Path.ChangeExtension(tempFile, null)}\" --dpi 300",
+            Arguments = "stdin stdout --dpi 300",
             RedirectStandardInput = true,
             RedirectStandardError = true,
             RedirectStandardOutput = true,
@@ -64,41 +55,25 @@ public sealed class TesseractCliRunner(
             CreateNoWindow = true
         };
 
-        return await ExecuteTesseractAsync(processStartInfo, tempFile, cancellationToken, imageBytes);
+        return await ExecuteTesseractAsync(processStartInfo, cancellationToken, imageBytes);
     }
 
     private async Task<string> ExecuteTesseractAsync(
         ProcessStartInfo startInfo,
-        string outputFile,
         CancellationToken cancellationToken,
         byte[]? inputBytes = null)
     {
         using Process process = new Process();
         process.StartInfo = startInfo;
-        process.EnableRaisingEvents = true;
-
-        List<string> stdOut = [];
-        List<string> stdErr = [];
-
-        process.OutputDataReceived += (_, e) =>
-        {
-            if (e.Data != null)
-                stdOut.Add(e.Data);
-        };
-
-        process.ErrorDataReceived += (_, e) =>
-        {
-            if (e.Data != null)
-                stdErr.Add(e.Data);
-        };
-
+        
         try
         {
             if (!process.Start())
                 throw new InvalidOperationException("Failed to start Tesseract process.");
 
-            process.BeginOutputReadLine();
-            process.BeginErrorReadLine();
+            // Start reading stdout and stderr asynchronously to avoid deadlocks
+            Task<string> outputTask = process.StandardOutput.ReadToEndAsync(cancellationToken);
+            Task<string> errorTask = process.StandardError.ReadToEndAsync(cancellationToken);
 
             if (inputBytes != null)
             {
@@ -108,24 +83,24 @@ public sealed class TesseractCliRunner(
 
             await process.WaitForExitAsync(cancellationToken);
 
+            string output = await outputTask;
+            string error = await errorTask;
+
             if (process.ExitCode != 0)
             {
                 logger.LogError(
                     "Tesseract failed. Exit code: {ExitCode}, Error: {Error}",
                     process.ExitCode,
-                    string.Join(Environment.NewLine, stdErr)
+                    error
                 );
 
                 throw new ApplicationException(
-                    $"Tesseract OCR failed with exit code {process.ExitCode}. Error: {string.Join(", ", stdErr)}"
+                    $"Tesseract OCR failed with exit code {process.ExitCode}. Error: {error}"
                 );
             }
 
             logger.LogInformation("Tesseract OCR finished successfully.");
-
-            // Tesseract automatically writes output to {output}.txt
-            string result = await File.ReadAllTextAsync(outputFile, cancellationToken);
-            return result;
+            return output;
         }
         catch (System.ComponentModel.Win32Exception ex)
         {
@@ -139,8 +114,7 @@ public sealed class TesseractCliRunner(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Unexpected error during OCR execution. StdErr: {StdErr}",
-                string.Join(Environment.NewLine, stdErr));
+            logger.LogError(ex, "Unexpected error during OCR execution.");
             throw;
         }
     }

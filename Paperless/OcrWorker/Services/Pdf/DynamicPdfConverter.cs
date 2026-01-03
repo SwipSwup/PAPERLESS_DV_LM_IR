@@ -11,7 +11,7 @@ public class DynamicPdfConverter : IPdfConverter
         CancellationToken cancellationToken = default)
     {
         PdfRasterizer rasterizer = new PdfRasterizer(pdfPath);
-        List<byte[]> pages = new List<byte[]>();
+        List<byte[]> pages = [];
 
         for (int i = 0; i < rasterizer.Pages.Count; i++)
         {

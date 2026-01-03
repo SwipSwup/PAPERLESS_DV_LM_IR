@@ -57,7 +57,7 @@ public class StorageWrapper : IStorageWrapper
                 .WithObject(objectName)
                 .WithCallbackStream(async (stream, token) =>
                 {
-                    await using FileStream file = File.OpenWrite(tempFile);
+                    await using FileStream file = new FileStream(tempFile, FileMode.Create, FileAccess.Write, FileShare.None, 4096, useAsync: true);
                     await stream.CopyToAsync(file, token);
                 });
 

@@ -10,8 +10,21 @@ using Microsoft.EntityFrameworkCore;
 using AutoMapper;
 using Core.Messaging;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Logging;
 
-HostApplicationBuilder builder = Host.CreateApplicationBuilder(args);
+using Serilog;
+
+// Configure Serilog
+Log.Logger = new LoggerConfiguration()
+    .WriteTo.Console()
+    .CreateLogger();
+
+try {
+    HostApplicationBuilder builder = Host.CreateApplicationBuilder(args);
+    
+    // Remove default logging providers
+    builder.Logging.ClearProviders();
+    builder.Services.AddSerilog();
 
 // Config
 builder.Services.Configure<RabbitMqSettings>(builder.Configuration.GetSection("RabbitMq"));
@@ -45,7 +58,8 @@ builder.Services.AddSingleton<IDocumentMessageProducer>(sp =>
         Password = settings.Password,
         QueueName = "indexing"
     };
-    return new RabbitMqProducer(producerSettings);
+    var logger = sp.GetRequiredService<ILogger<RabbitMqProducer>>();
+    return new RabbitMqProducer(producerSettings, logger);
 });
 
 // GenAI Service
@@ -58,5 +72,14 @@ builder.Services.AddScoped<IGenAIService, GenAiService>();
 // Worker
 builder.Services.AddHostedService<Worker>();
 
-IHost host = builder.Build();
-host.Run();
+    IHost host = builder.Build();
+    host.Run();
+}
+catch (Exception ex)
+{
+    Log.Fatal(ex, "Application terminated unexpectedly");
+}
+finally
+{
+    Log.CloseAndFlush();
+}

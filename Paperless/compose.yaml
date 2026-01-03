@@ -26,7 +26,7 @@
     environment:
       - DOTNET_ENVIRONMENT=Production
       - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=paperless;Username=admin;Password=admin;Pooling=true;
-      - GenAI__ApiKey=AIzaSyC03jNBjbCGF6Vwsld_PcP7XVS67IeIY0s
+      - GenAI__ApiKey=${GENAI_API_KEY}
       - GenAI__Model=gemini-1.5-flash
       - GenAI__MaxTokens=500
       - GenAI__Temperature=0.7

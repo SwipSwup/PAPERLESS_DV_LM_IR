@@ -101,28 +101,53 @@ namespace IndexingWorker.Messaging
                 ReadOnlyMemory<byte> body,
                 CancellationToken cancellationToken)
             {
-                logger.LogInformation("Message received! Tag: {Tag}", deliveryTag);
+                // 1. Extract Correlation ID
+                string correlationId = properties.Headers != null && properties.Headers.TryGetValue("X-Correlation-Id", out object? headerVal) && headerVal is byte[] bytes
+                    ? Encoding.UTF8.GetString(bytes)
+                    : Guid.NewGuid().ToString();
 
-                try
+                // 2. Push Log Context
+                using (logger.BeginScope(new Dictionary<string, object> { ["CorrelationId"] = correlationId }))
                 {
-                    string json = Encoding.UTF8.GetString(body.Span);
-                    T? message = JsonSerializer.Deserialize<T>(json);
-                    
-                    if (message == null)
+                    logger.LogInformation("Message received! Tag: {Tag}", deliveryTag);
+
+                    try
                     {
-                        logger.LogWarning("Received null message - Nacking");
-                        await Channel.BasicNackAsync(deliveryTag, false, false, appToken);
-                        return;
+                        string json = Encoding.UTF8.GetString(body.Span);
+                        // logger.LogDebug("Message Body: {Body}", json); // Optional: keep debug logs
+
+                        T? message = JsonSerializer.Deserialize<T>(json);
+                        
+                        if (message == null)
+                        {
+                            logger.LogWarning("Received null message - Nacking");
+                            await Channel.BasicNackAsync(deliveryTag, false, false, appToken);
+                            return;
+                        }
+
+                        // Inject CorrelationId into message if applicable
+                         if (message is Core.DTOs.DocumentMessageDto docMsg)
+                         {
+                             docMsg.CorrelationId = correlationId;
+                         }
+
+                        await onMessage(message, deliveryTag, appToken);
+
+                        await Channel.BasicAckAsync(deliveryTag, false, appToken);
+                        logger.LogInformation("Message acknowledged. Tag: {Tag}", deliveryTag);
                     }
-
-                    await onMessage(message, deliveryTag, appToken);
-
-                    await Channel.BasicAckAsync(deliveryTag, false, appToken);
-                }
-                catch (Exception ex)
-                {
-                    logger.LogError(ex, "Error processing message");
-                    await Channel.BasicNackAsync(deliveryTag, false, true, appToken);
+                    catch (Core.Exceptions.InfrastructureException ex) when (ex.IsTransient)
+                    {
+                        logger.LogWarning(ex, "Transient failure (Elastic/Network). Requeueing message.");
+                         // 3. Requeue for Retry
+                        await Channel.BasicNackAsync(deliveryTag, false, true, appToken);
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogError(ex, "Fatal error or Indexing failure. Sending to Dead Letter Queue.");
+                         // 4. Dead Letter (Reject without requeue)
+                        await Channel.BasicNackAsync(deliveryTag, false, false, appToken);
+                    }
                 }
             }
 

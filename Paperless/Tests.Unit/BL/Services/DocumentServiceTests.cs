@@ -7,6 +7,7 @@ using Core.Models;
 using Core.Repositories.Interfaces;
 using Core.Interfaces;
 using Moq;
+using Microsoft.Extensions.Logging;
 
 namespace Tests.Unit.BL.Services;
 
@@ -19,6 +20,7 @@ public class DocumentServiceTests
     private Mock<IDocumentMessageProducer> _mockDocumentMessageProducer;
     private Mock<ISearchService> _mockSearchService;
     private Mock<IMapper> _mockMapper;
+    private Mock<ILogger<DocumentService>> _mockLogger;
     private DocumentService _documentService;
 
     [SetUp]
@@ -30,13 +32,15 @@ public class DocumentServiceTests
         _mockDocumentMessageProducer = new Mock<IDocumentMessageProducer>();
         _mockSearchService = new Mock<ISearchService>();
         _mockMapper = new Mock<IMapper>();
+        _mockLogger = new Mock<ILogger<DocumentService>>();
         _documentService = new DocumentService(
             _mockDocumentRepo.Object,
             _mockAccessLogRepo.Object,
             _mockDocumentLogRepo.Object,
             _mockMapper.Object,
             _mockDocumentMessageProducer.Object,
-            _mockSearchService.Object);
+            _mockSearchService.Object,
+            _mockLogger.Object);
     }
 
     [Test]

@@ -3,14 +3,13 @@ using Core.DTOs;
 using Core.Exceptions;
 using Core.Models;
 using Core.Repositories.Interfaces;
-using log4net;
-using System.Reflection;
+using Microsoft.Extensions.Logging;
 
 namespace BL.Services
 {
-    public class AccessLogService(IAccessLogRepository accessLogRepo, IMapper mapper)
+    public class AccessLogService(IAccessLogRepository accessLogRepo, IMapper mapper, ILogger<AccessLogService> logger)
     {
-        private static readonly ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod()!.DeclaringType);
+        private readonly ILogger<AccessLogService> _logger = logger;
 
         private readonly IAccessLogRepository _accessLogRepo =
             accessLogRepo ?? throw new ArgumentNullException(nameof(accessLogRepo));
@@ -19,7 +18,7 @@ namespace BL.Services
 
         public async Task<List<AccessLogDto>> GetAllAsync()
         {
-            log.Info("AccessLogService.GetAllAsync called");
+            _logger.LogInformation("AccessLogService.GetAllAsync called");
             try
             {
                 List<AccessLog> logs = await _accessLogRepo.GetAllAsync();
@@ -33,7 +32,7 @@ namespace BL.Services
 
         public async Task<AccessLogDto?> GetByIdAsync(int id)
         {
-            log.Info($"AccessLogService.GetByIdAsync called with ID={id}");
+            _logger.LogInformation("AccessLogService.GetByIdAsync called with ID={Id}", id);
             try
             {
                 AccessLog? logEntity = await _accessLogRepo.GetByIdAsync(id);
@@ -47,7 +46,7 @@ namespace BL.Services
 
         public async Task<List<AccessLogDto>> GetByDocumentIdAsync(int documentId)
         {
-            log.Info($"AccessLogService.GetByDocumentIdAsync called for Document ID={documentId}");
+            _logger.LogInformation("AccessLogService.GetByDocumentIdAsync called for Document ID={Id}", documentId);
             try
             {
                 List<AccessLog> logs = await _accessLogRepo.GetByDocumentIdAsync(documentId);
@@ -61,7 +60,7 @@ namespace BL.Services
 
         public async Task<AccessLogDto> AddAsync(AccessLog accessLog)
         {
-            log.Info($"AccessLogService.AddAsync called for Document ID={accessLog.Id}");
+            _logger.LogInformation("AccessLogService.AddAsync called for Document ID={Id}", accessLog.Id);
             try
             {
                 await _accessLogRepo.AddAsync(accessLog);
@@ -75,7 +74,7 @@ namespace BL.Services
 
         public async Task<AccessLogDto> UpdateAsync(AccessLog accessLog)
         {
-            log.Info($"AccessLogService.UpdateAsync called for AccessLog ID={accessLog.Id}");
+            _logger.LogInformation("AccessLogService.UpdateAsync called for AccessLog ID={Id}", accessLog.Id);
             try
             {
                 await _accessLogRepo.UpdateAsync(accessLog);
@@ -90,13 +89,13 @@ namespace BL.Services
 
         public async Task<bool> DeleteAsync(int id)
         {
-            log.Info($"AccessLogService.DeleteAsync called for ID={id}");
+            _logger.LogInformation("AccessLogService.DeleteAsync called for ID={Id}", id);
             try
             {
                 AccessLog? existing = await _accessLogRepo.GetByIdAsync(id);
                 if (existing == null)
                 {
-                    log.Warn($"AccessLogService.DeleteAsync: AccessLog ID={id} not found");
+                    _logger.LogWarning("AccessLogService.DeleteAsync: AccessLog ID={Id} not found", id);
                     return false;
                 }
 
@@ -111,7 +110,7 @@ namespace BL.Services
 
         public async Task LogAccessAsync(int documentId, DateTime date)
         {
-            log.Info($"AccessLogService.LogAccessAsync called for Document ID={documentId} Date={date:yyyy-MM-dd}");
+            _logger.LogInformation("AccessLogService.LogAccessAsync called for Document ID={Id} Date={Date}", documentId, date.ToString("yyyy-MM-dd"));
             try
             {
                 List<AccessLog> logs = await _accessLogRepo.GetByDocumentIdAsync(documentId);

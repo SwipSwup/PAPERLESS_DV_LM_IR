@@ -5,7 +5,6 @@ using OcrWorker.Messaging;
 using OcrWorker.Services.Pdf;
 using OcrWorker.Services.Ocr;
 using OcrWorker.Services.Tesseract;
-using PaperlessServices.OcrWorker.Ocr;
 using OcrWorker.Storage;
 using OcrWorker.Utils;
 using DAL;
@@ -16,7 +15,20 @@ using BL.Messaging;
 using Core.Messaging;
 using Core.DTOs;
 
-HostApplicationBuilder builder = Host.CreateApplicationBuilder(args);
+using Serilog;
+
+// Configure Serilog
+Log.Logger = new LoggerConfiguration()
+    .WriteTo.Console()
+    .CreateLogger();
+
+try
+{
+    HostApplicationBuilder builder = Host.CreateApplicationBuilder(args);
+    
+    // Remove default logging providers
+    builder.Logging.ClearProviders();
+    builder.Services.AddSerilog();
 
 // Config
 builder.Services.Configure<RabbitMqSettings>(builder.Configuration.GetSection("RabbitMq"));
@@ -47,5 +59,14 @@ builder.Services.AddScoped<ITempFileUtility, TempFileUtility>();
 
 builder.Services.AddHostedService<Worker>();
 
-IHost host = builder.Build();
-host.Run();
+    IHost host = builder.Build();
+    host.Run();
+}
+catch (Exception ex)
+{
+    Log.Fatal(ex, "Application terminated unexpectedly");
+}
+finally
+{
+    Log.CloseAndFlush();
+}

@@ -1,6 +1,8 @@
 using BL.Messaging;
 using Core.Configuration;
 using Core.Exceptions;
+using Microsoft.Extensions.Logging;
+using Moq;
 using NUnit.Framework;
 
 namespace Tests.Unit.BL.Messaging
@@ -24,7 +26,8 @@ namespace Tests.Unit.BL.Messaging
             // Act & Assert
             // Since we can't mock the connection factory, this will try to connect and likely fail.
             // This verifies that the service attempts connection and handles failure by wrapping in MessagingException (as seen in code).
-            Assert.Throws<MessagingException>(() => new RabbitMqProducer(settings));
+            Mock<ILogger<RabbitMqProducer>> mockLogger = new Mock<ILogger<RabbitMqProducer>>();
+            Assert.Throws<MessagingException>(() => new RabbitMqProducer(settings, mockLogger.Object));
         }
     }
 }

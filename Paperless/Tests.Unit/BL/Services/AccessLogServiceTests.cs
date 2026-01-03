@@ -8,6 +8,7 @@ using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
 namespace Tests.Unit.BL.Services
 {
@@ -16,6 +17,7 @@ namespace Tests.Unit.BL.Services
     {
         private Mock<IAccessLogRepository> _mockRepo;
         private Mock<IMapper> _mockMapper;
+        private Mock<ILogger<AccessLogService>> _mockLogger;
         private AccessLogService _service;
 
         [SetUp]
@@ -23,7 +25,8 @@ namespace Tests.Unit.BL.Services
         {
             _mockRepo = new Mock<IAccessLogRepository>();
             _mockMapper = new Mock<IMapper>();
-            _service = new AccessLogService(_mockRepo.Object, _mockMapper.Object);
+            _mockLogger = new Mock<ILogger<AccessLogService>>();
+            _service = new AccessLogService(_mockRepo.Object, _mockMapper.Object, _mockLogger.Object);
         }
 
         [Test]

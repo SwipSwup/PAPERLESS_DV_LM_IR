@@ -1,26 +1,25 @@
 ﻿using Core.Exceptions;
 using Core.Models;
 using Core.Repositories.Interfaces;
-using log4net;
-using System.Reflection;
+using Microsoft.Extensions.Logging;
 
 namespace BL.Services
 {
     public class TagService
     {
-        private static readonly ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod()!.DeclaringType);
-
+        private readonly ILogger<TagService> _logger;
         private readonly ITagRepository _tagRepository;
 
-        public TagService(ITagRepository tagRepository)
+        public TagService(ITagRepository tagRepository, ILogger<TagService> logger)
         {
             _tagRepository = tagRepository ?? throw new ArgumentNullException(nameof(tagRepository));
-            log.Info("TagService initialized");
+            _logger = logger;
+            _logger.LogInformation("TagService initialized");
         }
 
         public async Task<List<Tag>> GetAllTagsAsync()
         {
-            log.Info("TagService.GetAllTagsAsync called");
+            _logger.LogInformation("TagService.GetAllTagsAsync called");
             try
             {
                 return await _tagRepository.GetAllAsync();
@@ -33,7 +32,7 @@ namespace BL.Services
 
         public async Task<Tag?> GetTagByIdAsync(int id)
         {
-            log.Info($"TagService.GetTagByIdAsync called with ID={id}");
+            _logger.LogInformation("TagService.GetTagByIdAsync called with ID={Id}", id);
             try
             {
                 return await _tagRepository.GetByIdAsync(id);
@@ -46,7 +45,7 @@ namespace BL.Services
 
         public async Task<Tag> AddTagAsync(Tag tag)
         {
-            log.Info($"TagService.AddTagAsync called for Tag Name='{tag.Name}'");
+            _logger.LogInformation("TagService.AddTagAsync called for Tag Name='{TagName}'", tag.Name);
             try
             {
                 await _tagRepository.AddAsync(tag);
@@ -60,7 +59,7 @@ namespace BL.Services
 
         public async Task<Tag> UpdateTagAsync(Tag tag)
         {
-            log.Info($"TagService.UpdateTagAsync called for Tag ID={tag.Id}");
+            _logger.LogInformation("TagService.UpdateTagAsync called for Tag ID={Id}", tag.Id);
             try
             {
                 await _tagRepository.UpdateAsync(tag);
@@ -74,7 +73,7 @@ namespace BL.Services
 
         public async Task DeleteTagAsync(int id)
         {
-            log.Info($"TagService.DeleteTagAsync called for ID={id}");
+            _logger.LogInformation("TagService.DeleteTagAsync called for ID={Id}", id);
             try
             {
                 await _tagRepository.DeleteAsync(id);
@@ -87,7 +86,7 @@ namespace BL.Services
 
         public async Task<List<Tag>> SearchTagsAsync(string keyword)
         {
-            log.Info($"TagService.SearchTagsAsync called with keyword='{keyword}'");
+            _logger.LogInformation("TagService.SearchTagsAsync called with keyword='{Keyword}'", keyword);
             try
             {
                 return await _tagRepository.SearchTagsAsync(keyword);
