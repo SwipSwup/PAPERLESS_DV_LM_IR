@@ -25,7 +25,12 @@ namespace GenAIWorker.Services
             logger.LogInformation("Generating summary for text of length {length}", text.Length);
 
             string processedText = TruncateText(text);
-            string prompt = $"Please provide a concise summary of the following document text in 2-3 sentences:\n\n{processedText}";
+            string prompt = $"Act as a professional document archivist for the 'Paperless DMS' system. " +
+                            $"Provide a meaningful and detailed summary of the following document text in 3-5 sentences. " +
+                            $"The summary will be used for full-text search and quick user previews. " +
+                            $"Focus on accurately capturing the document type, involved parties, key dates, monetary values (if any), and the core subject matter. " +
+                            $"Do not use phrases like 'The document contains' or 'Here is a summary'; simply state the facts.\n\n" +
+                            $"Text:\n{processedText}";
 
             GeminiGenerateContentRequest request = CreateRequest(prompt, _settings.Temperature, _settings.MaxTokens);
             
@@ -54,11 +59,7 @@ namespace GenAIWorker.Services
             logger.LogInformation("Generating tags for text of length {length}", text.Length);
 
             string processedText = TruncateText(text);
-            string prompt = $"Based on the following document text, generate 3-5 relevant tags that categorize this document. " +
-                            $"Return only the tag names, one per line, without numbers or bullets. " +
-                            $"Tags should be concise (1-3 words), relevant to the content, and useful for organization. " +
-                            $"Examples: 'Invoice', 'Contract', 'Receipt', 'Medical Record', 'Legal Document', 'Report', etc.\n\n" +
-                            $"Document text:\n{processedText}";
+            string prompt = BuildTagGenerationPrompt(processedText);
 
             GeminiGenerateContentRequest request = CreateRequest(prompt, _settings.Temperature, 200);
 
@@ -71,12 +72,72 @@ namespace GenAIWorker.Services
                    return Task.FromResult(new List<Tag>());
                 }
                 
-                List<string> tags = ParseTagsFromResponse(tagsText);
-                List<Tag> tagsWithColors = AssignColorsToTags(tags);
+                List<Tag> tags = ParseTagsWithColors(tagsText);
                 
-                logger.LogInformation("Successfully generated {count} tags", tagsWithColors.Count);
-                return Task.FromResult(tagsWithColors);
+                logger.LogInformation("Successfully generated {count} tags", tags.Count);
+                return Task.FromResult(tags);
             }, cancellationToken);
+        }
+
+        private string BuildTagGenerationPrompt(string text)
+        {
+            var categories = new[]
+            {
+                new { Name = "Financial & Money", Colors = new[] { "#f59e0b" /*Amber*/, "#f97316" /*Orange*/ }, Desc = "Invoices, Receipts, Tax, Offers" },
+                new { Name = "Legal & Formal", Colors = new[] { "#3b82f6" /*Blue*/, "#6366f1" /*Indigo*/ }, Desc = "Contracts, Agreements, Policy, Official" },
+                new { Name = "Urgent & Critical", Colors = new[] { "#ef4444" /*Red*/ }, Desc = "Warnings, Deadlines, Errors, Important" },
+                new { Name = "Personal & Private", Colors = new[] { "#8b5cf6" /*Purple*/, "#ec4899" /*Pink*/ }, Desc = "Medical, Family, Identity, Sensitive" },
+                new { Name = "Success & Verified", Colors = new[] { "#10b981" /*Green*/, "#14b8a6" /*Teal*/, "#84cc16" /*Lime*/ }, Desc = "Paid, Completed, Certified, Safe" },
+                new { Name = "General & Archive", Colors = new[] { "#64748b" /*Slate*/, "#71717a" /*Zinc*/ }, Desc = "Logs, Notes, Drafts, Misc" }
+            };
+
+            var colorGuide = string.Join("\n", categories.Select(c => 
+                $"   - {c.Name} ({c.Desc}): {string.Join(", ", c.Colors)}"));
+
+            return $"Act as a smart automated filing system. Analyze the following text and generate 3-5 meta-tags. " +
+                   $"For each tag, select the most appropriate color based on the semantic meaning of the tag.\n\n" +
+                   $"Color Selection Guide:\n" +
+                   $"{colorGuide}\n\n" +
+                   $"Rules:\n" +
+                   $"1. Output format MUST be strictly: TagName|ColorHex (e.g., 'Invoice|#f97316')\n" +
+                   $"2. Return one tag per line.\n" +
+                   $"3. TagName should be Title Case, 1-3 words.\n" +
+                   $"4. Choose the color that best fits the mood or category of the tag.\n" +
+                   $"5. No bullets, numbers, or markdown.\n\n" +
+                   $"Text:\n{text}";
+        }
+
+        // Replaces ParseTagsFromResponse and AssignColorsToTags
+        private List<Tag> ParseTagsWithColors(string response)
+        {
+            var result = new List<Tag>();
+            var lines = response.Split(['\n', '\r'], StringSplitOptions.RemoveEmptyEntries);
+
+            foreach (var line in lines)
+            {
+                try 
+                {
+                    // Clean the line of bullets/numbers just in case the LLM ignored instructions
+                    var cleanLine = System.Text.RegularExpressions.Regex.Replace(line.Trim(), @"^[-•\d.\s]+", "");
+                    
+                    if (string.IsNullOrWhiteSpace(cleanLine)) continue;
+
+                    var parts = cleanLine.Split('|');
+                    string name = parts[0].Trim();
+                    string color = parts.Length > 1 ? parts[1].Trim() : Core.Constants.TagPalette.GetRandomColor();
+
+                    // Basic validation
+                    if (name.Length > MaxTagLength) name = name.Substring(0, MaxTagLength);
+
+                    result.Add(new Tag { Name = name, Color = color });
+                }
+                catch (Exception ex)
+                {
+                    logger.LogWarning("Failed to parse tag line '{line}': {message}", line, ex.Message);
+                }
+            }
+
+            return result;
         }
 
         private void ValidateInput(string text)
@@ -225,24 +286,7 @@ namespace GenAIWorker.Services
              return _settings.Model;
         }
 
-        private List<string> ParseTagsFromResponse(string response)
-        {
-            return response.Split(['\n', '\r'], StringSplitOptions.RemoveEmptyEntries)
-                .Select(line => line.Trim())
-                .Select(line => System.Text.RegularExpressions.Regex.Replace(line, @"^[-•\d.\s]+", ""))
-                .Select(line => line.Trim())
-                .Where(line => !string.IsNullOrWhiteSpace(line) && line.Length <= MaxTagLength)
-                .ToList();
-        }
 
-        private List<Tag> AssignColorsToTags(List<string> tagNames)
-        {
-            return tagNames.Select(tagName => new Tag
-            {
-                Name = tagName,
-                Color = Core.Constants.TagPalette.GetRandomColor()
-            }).ToList();
-        }
     }
 }
 

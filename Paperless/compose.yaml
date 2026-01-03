@@ -44,17 +44,6 @@
     environment:
       - DOTNET_ENVIRONMENT=Production
 
-  #  batchworker:
-  #    container_name: paperless-batchworker
-  #    build:
-  #      context: .
-  #      dockerfile: BatchWorker/Dockerfile
-  #    depends_on:
-  #      postgres:
-  #        condition: service_healthy
-  #    environment:
-  #      - DOTNET_ENVIRONMENT=Production
-
   # --- UI ---
   ui:
     container_name: paperless-ui
@@ -64,9 +53,6 @@
     ports:
       - "5012:8080" # HTTP (match app's actual listening port)
       - "7195:8081" # HTTPS
-    #    depends_on:
-    #      api:
-    #        condition: service_healthy
     environment:
       - DOTNET_ENVIRONMENT=Development
 
@@ -88,12 +74,6 @@
       - DOTNET_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:8080;https://+:8081
       - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=paperless;Username=admin;Password=admin;Pooling=true;
-  #    healthcheck:
-  #      test: [ "CMD-SHELL", "curl -f http://localhost:8080/health || exit 1" ]
-  #      interval: 5s
-  #      timeout: 10s
-  #      retries: 10
-  #      start_period: 10s
 
   # --- Infrastructure ---
   postgres:
@@ -160,12 +140,7 @@
       - "9200:9200"
     volumes:
       - elastic_data:/usr/share/elasticsearch/data
-   # healthcheck:
-   #   test: ["CMD-SHELL", "curl -fsSL http://localhost:9200/_cluster/health | grep -q '\"status\"'"]
-   #   interval: 10s
-   #   timeout: 10s
-   #   retries: 10
-   #   start_period: 15s
+      - elastic_data:/usr/share/elasticsearch/data
 
 volumes:
   postgres_data:

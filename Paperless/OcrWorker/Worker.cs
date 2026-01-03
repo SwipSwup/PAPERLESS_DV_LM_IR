@@ -12,7 +12,7 @@ namespace OcrWorker;
 public class Worker(
     ILogger<Worker> logger,
     IMessageConsumer consumer,
-    OcrWorker.Messaging.IDocumentMessageProducerFactory producerFactory,
+    IDocumentMessageProducerFactory producerFactory,
     IServiceProvider serviceProvider)
     : BackgroundService
 {
@@ -22,6 +22,8 @@ public class Worker(
         {
             try
             {
+                // Use manual consumer acknowledgment to ensure data safety.
+                // Messages are only acknowledged after successful processing to prevent data loss.
                 await consumer.ConsumeAsync<DocumentMessageDto>(
                     queueName: "documents",
                     onMessage: OnMessage,
@@ -54,7 +56,9 @@ public class Worker(
 
     private async Task OnMessage(DocumentMessageDto msg, ulong deliveryTag, CancellationToken ct)
     {
-        logger.LogInformation("Processing document {id}", msg.DocumentId);
+        using (logger.BeginScope(new Dictionary<string, object> { ["CorrelationId"] = msg.CorrelationId }))
+        {
+            logger.LogInformation("Processing document {id} (CorrelationId: {CorrelationId})", msg.DocumentId, msg.CorrelationId);
 
             using (IServiceScope scope = serviceProvider.CreateScope())
             {
@@ -66,8 +70,32 @@ public class Worker(
                 // Download PDF from MinIO
                 string pdf = await minio.DownloadPdfAsync(msg, ct);
 
-                // Run OCR
-                string text = await ocrService.ExtractTextFromPdfAsync(pdf, ct);
+                // Run OCR with Retry Policy
+                string text = string.Empty;
+                int retryCount = 0;
+                const int MaxRetries = 3;
+
+                while (true)
+                {
+                    try
+                    {
+                        text = await ocrService.ExtractTextFromPdfAsync(pdf, ct);
+                        break; // Success
+                    }
+                    catch (Exception ex)
+                    {
+                        retryCount++;
+                        if (retryCount >= MaxRetries)
+                        {
+                            logger.LogError(ex, "OCR failed after {Retries} attempts for document {id}", MaxRetries, msg.DocumentId);
+                            throw; // Re-throw to trigger NACK/DLQ
+                        }
+
+                        int delay = 1000 * (int)Math.Pow(2, retryCount - 1); // 1s, 2s, 4s
+                        logger.LogWarning("OCR attempt {Attempt} failed: {Message}. Retrying in {Delay}ms...", retryCount, ex.Message, delay);
+                        await Task.Delay(delay, ct);
+                    }
+                }
 
                 // Upload Result to MinIO
                 await minio.UploadTextAsync(msg, text, ct);
@@ -98,5 +126,6 @@ public class Worker(
             }
 
             logger.LogInformation("OCR finished for {id}", msg.DocumentId);
+        }
     }
 }

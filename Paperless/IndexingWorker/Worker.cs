@@ -66,6 +66,7 @@ public class Worker(
             {
                 var response = await elasticClient.Indices.CreateAsync(IndexName, c => c
                     .Mappings(m => m
+                        // Map specific fields as Text for full-text search capabilities.
                         .Properties<Core.DTOs.DocumentDto>(p => p
                             .Text(d => d.OcrText)
                             .Text(d => d.FileName)
@@ -91,7 +92,9 @@ public class Worker(
 
     private async Task OnMessage(DocumentMessageDto msg, ulong deliveryTag, CancellationToken ct)
     {
-        logger.LogInformation("Indexing document {id}", msg.DocumentId);
+        using (logger.BeginScope(new Dictionary<string, object> { ["CorrelationId"] = msg.CorrelationId }))
+        {
+            logger.LogInformation("Indexing document {id} (CorrelationId: {CorrelationId})", msg.DocumentId, msg.CorrelationId);
 
         try 
         {
@@ -124,6 +127,7 @@ public class Worker(
         catch (Exception ex)
         {
              logger.LogError(ex, "Error indexing document {id}", msg.DocumentId);
+        }
         }
     }
 }

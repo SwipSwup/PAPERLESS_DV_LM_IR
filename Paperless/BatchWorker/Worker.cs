@@ -29,12 +29,28 @@ public class Worker : BackgroundService
 
         while (!stoppingToken.IsCancellationRequested)
         {
+            // Calculate delay until next 01:00 AM
+            DateTime now = DateTime.Now;
+            DateTime nextRun = now.Date.AddHours(1); // 01:00 AM today
+            if (now >= nextRun)
+            {
+                nextRun = nextRun.AddDays(1); // 01:00 AM tomorrow
+            }
+
+            TimeSpan delay = nextRun - now;
+            _logger.LogInformation("Next batch run scheduled for {nextRun} (in {delay})", nextRun, delay);
+
             try
             {
+                // Wait until schedule or cancellation
+                await Task.Delay(delay, stoppingToken);
+
+                // Check again in case of spurious wakeups or massive drift, though Delay is usually good.
+                // Doing the work:
                 var files = Directory.GetFiles(_inputPath, "*.xml");
                 if (files.Length > 0)
                 {
-                    _logger.LogInformation("Found {count} files to process", files.Length);
+                    _logger.LogInformation("Starting scheduled batch processing. Found {count} files.", files.Length);
                     
                     using (var scope = _serviceProvider.CreateScope())
                     {
@@ -46,14 +62,20 @@ public class Worker : BackgroundService
                         }
                     }
                 }
+                else
+                {
+                    _logger.LogInformation("No files found to process at scheduled time.");
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                // Graceful shutdown
+                break;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error processing batch files");
             }
-
-            // Quick polling for demo; in production use Crontab or longer delay
-            await Task.Delay(10000, stoppingToken);
         }
     }
 

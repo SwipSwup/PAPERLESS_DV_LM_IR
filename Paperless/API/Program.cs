@@ -133,6 +133,11 @@ WebApplication app = builder.Build();
 // --------------------
 // Configure Middleware
 // --------------------
+// --------------------
+// Configure Middleware
+// --------------------
+app.UseMiddleware<API.Middleware.CorrelationIdMiddleware>();
+
 app.UseExceptionHandler();
 
 if (app.Environment.IsDevelopment())

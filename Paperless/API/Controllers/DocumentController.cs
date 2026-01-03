@@ -8,7 +8,7 @@ using Core.Interfaces;
 using FluentValidation;
 using FluentValidation.Results;
 using Serilog;
-using Core.Exceptions;
+
 
 namespace API.Controllers;
 
@@ -17,6 +17,10 @@ namespace API.Controllers;
 public class DocumentController(DocumentService service, IStorageService storageService, IMapper mapper, IValidator<DocumentDto> validator) : ControllerBase
 {
 
+    /// <summary>
+    /// Retrieves all documents.
+    /// </summary>
+    /// <returns>A list of all documents.</returns>
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
@@ -25,6 +29,11 @@ public class DocumentController(DocumentService service, IStorageService storage
         return Ok(mapper.Map<List<DocumentDto>>(documents));
     }
 
+    /// <summary>
+    /// Retrieves a specific document by its unique identifier.
+    /// </summary>
+    /// <param name="id">The unique identifier of the document.</param>
+    /// <returns>The requested document if found; otherwise, NotFound.</returns>
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(int id)
     {
@@ -36,6 +45,11 @@ public class DocumentController(DocumentService service, IStorageService storage
         return Ok(mapper.Map<DocumentDto>(document));
     }
 
+    /// <summary>
+    /// Downloads the file associated with a document.
+    /// </summary>
+    /// <param name="id">The unique identifier of the document.</param>
+    /// <returns>The file stream of the document.</returns>
     [HttpGet("{id}/download")]
     public async Task<IActionResult> Download(int id)
     {
@@ -76,6 +90,11 @@ public class DocumentController(DocumentService service, IStorageService storage
         return File(stream, contentType);
     }
 
+    /// <summary>
+    /// Uploads a new document.
+    /// </summary>
+    /// <param name="uploadDto">The document upload data transfer object containing the file and metadata.</param>
+    /// <returns>The created document.</returns>
     [HttpPost]
     public async Task<IActionResult> Create([FromForm] DocumentUploadDto uploadDto)
     {
@@ -109,16 +128,39 @@ public class DocumentController(DocumentService service, IStorageService storage
             }
         }
 
-        // 4. Save to DB (and publish RabbitMQ message)
-        // Note: Ideally we pass a CorrelationId to the Service -> Producer here.
-        // For now, let's assume the Service generates one if missing, or we add overloaded method.
-        // We will stick to the existing Service signature for now but ensure the PRODUCER adds it.
-        DocumentDto created = await service.AddDocumentAsync(document);
+        // 4. Save to DB (and publish RabbitMQ message) with Compensating Transaction
+        try
+        {
+            DocumentDto created = await service.AddDocumentAsync(document);
+            Log.Information("DocumentController: Document created with id={Id}", created.Id);
+            return CreatedAtAction(nameof(GetById), new { id = created.Id }, mapper.Map<DocumentDto>(created));
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "DocumentController: Failed to save document metadata. Executing compensating transaction (deleting file).");
+            // COMPENSATING ACTION: Delete the file from Storage to prevent orphans
+            try
+            {
+                await storageService.DeleteFileAsync(fileName);
+                Log.Information("DocumentController: Compensating transaction successful. File {FileName} deleted.", fileName);
+            }
+            catch (Exception deleteEx)
+            {
+                // Critical failure: Both DB save failed AND cleanup failed. 
+                // In a real system, we'd log this to a special "Orphans" table or alert.
+                Log.Fatal(deleteEx, "DocumentController: Compensating transaction FAILED. File {FileName} is orphaned in MinIO.", fileName);
+            }
 
-        Log.Information("DocumentController: Document created with id={Id}", created.Id);
-        return CreatedAtAction(nameof(GetById), new { id = created.Id }, mapper.Map<DocumentDto>(created));
+            throw; // Re-throw original exception to return 500
+        }
     }
 
+    /// <summary>
+    /// Updates an existing document.
+    /// </summary>
+    /// <param name="id">The unique identifier of the document to update.</param>
+    /// <param name="dto">The updated document data.</param>
+    /// <returns>NoContent if successful.</returns>
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(int id, [FromBody] DocumentDto dto)
     {
@@ -143,6 +185,11 @@ public class DocumentController(DocumentService service, IStorageService storage
         return NoContent();
     }
 
+    /// <summary>
+    /// Deletes a document by its unique identifier.
+    /// </summary>
+    /// <param name="id">The unique identifier of the document to delete.</param>
+    /// <returns>NoContent if successful.</returns>
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id)
     {
@@ -154,6 +201,11 @@ public class DocumentController(DocumentService service, IStorageService storage
         return NoContent();
     }
 
+    /// <summary>
+    /// Searches for documents based on a keyword.
+    /// </summary>
+    /// <param name="keyword">The keyword to search for.</param>
+    /// <returns>A list of documents matching the search criteria.</returns>
     [HttpGet("search")]
     public async Task<IActionResult> Search([FromQuery] string keyword)
     {

@@ -83,15 +83,17 @@ namespace BL.Services
 
             try
             {
-                _logger.LogInformation("DocumentService: Publishing message for Document ID={Id}", document.Id);
+                string correlationId = Guid.NewGuid().ToString();
+                _logger.LogInformation("DocumentService: Publishing message for Document ID={Id} CorrelationId={CorrelationId}", document.Id, correlationId);
                 await _producer.PublishDocumentAsync(new DocumentMessageDto
                 {
                     DocumentId = document.Id,
                     FilePath = document.FilePath,
                     FileName = document.FileName,
-                    UploadedAt = document.UploadedAt
+                    UploadedAt = document.UploadedAt,
+                    CorrelationId = correlationId
                 });
-                _logger.LogInformation("DocumentService: Published message for Document ID={Id}", document.Id);
+                _logger.LogInformation("DocumentService: Published message for Document ID={Id} CorrelationId={CorrelationId}", document.Id, correlationId);
             }
             catch (MessagingException ex)
             {
