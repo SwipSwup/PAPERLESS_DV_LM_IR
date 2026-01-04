@@ -10,12 +10,9 @@ namespace DAL.Models
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int Id { get; set; }
 
-        [Required]
-        [MaxLength(100)]
-        public string Name { get; set; } = string.Empty;
+        [Required] [MaxLength(100)] public string Name { get; set; } = string.Empty;
 
-        [MaxLength(20)]
-        public string? Color { get; set; }
+        [MaxLength(20)] public string? Color { get; set; }
 
         public ICollection<DocumentEntity> Documents { get; set; } = new List<DocumentEntity>();
     }

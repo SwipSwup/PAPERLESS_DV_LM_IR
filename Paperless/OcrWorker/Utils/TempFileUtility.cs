@@ -27,7 +27,9 @@ public class TempFileUtility(ILogger<TempFileUtility> logger) : ITempFileUtility
         string filePath = Path.Combine(directory, fileName);
 
         // Create empty file on disk
-        using (File.Create(filePath)) { }
+        using (File.Create(filePath))
+        {
+        }
 
         logger.LogDebug("Created temp file {path}", filePath);
         return filePath;

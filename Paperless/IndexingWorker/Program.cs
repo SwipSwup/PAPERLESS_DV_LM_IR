@@ -15,7 +15,7 @@ Log.Logger = new LoggerConfiguration()
     .CreateLogger();
 
 try {
-    var builder = Host.CreateApplicationBuilder(args);
+    HostApplicationBuilder builder = Host.CreateApplicationBuilder(args);
     
     // Remove default logging providers
     builder.Logging.ClearProviders();
@@ -42,14 +42,14 @@ builder.Services.AddSingleton<IMessageConsumer, MessageConsumer>();
 // ElasticSearch
 builder.Services.AddSingleton<ElasticsearchClient>(sp =>
 {
-    var uri = builder.Configuration["ElasticSearch:Uri"] ?? "http://elasticsearch:9200";
+    string uri = builder.Configuration["ElasticSearch:Uri"] ?? "http://elasticsearch:9200";
     return new ElasticsearchClient(new Uri(uri));
 });
 
 // Worker
 builder.Services.AddHostedService<Worker>();
 
-    var host = builder.Build();
+    IHost host = builder.Build();
     host.Run();
 }
 catch (Exception ex)

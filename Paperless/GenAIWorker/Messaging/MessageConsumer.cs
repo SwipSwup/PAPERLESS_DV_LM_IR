@@ -4,6 +4,7 @@ using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System.Text;
 using System.Text.Json;
+using Core.DTOs.Messaging;
 using Core.Exceptions;
 
 namespace GenAIWorker.Messaging
@@ -35,7 +36,8 @@ namespace GenAIWorker.Messaging
                 consumer: _consumer,
                 cancellationToken: ct);
 
-            logger.LogInformation("RabbitMQ Consumer started on queue '{queueName}'. Consumer Tag: {Tag}", queueName, consumerTag);
+            logger.LogInformation("RabbitMQ Consumer started on queue '{queueName}'. Consumer Tag: {Tag}", queueName,
+                consumerTag);
         }
 
         private async Task EnsureConnectedAsync()
@@ -102,7 +104,9 @@ namespace GenAIWorker.Messaging
                 CancellationToken cancellationToken)
             {
                 // 1. Extract Correlation ID
-                string correlationId = properties.Headers != null && properties.Headers.TryGetValue("X-Correlation-Id", out object? headerVal) && headerVal is byte[] bytes
+                string correlationId = properties.Headers != null &&
+                                       properties.Headers.TryGetValue("X-Correlation-Id", out object? headerVal) &&
+                                       headerVal is byte[] bytes
                     ? Encoding.UTF8.GetString(bytes)
                     : Guid.NewGuid().ToString();
 
@@ -126,10 +130,10 @@ namespace GenAIWorker.Messaging
                         }
 
                         // Inject CorrelationId into message if applicable
-                         if (message is Core.DTOs.DocumentMessageDto docMsg)
-                         {
-                             docMsg.CorrelationId = correlationId;
-                         }
+                        if (message is DocumentMessageDto docMsg)
+                        {
+                            docMsg.CorrelationId = correlationId;
+                        }
 
                         await onMessage(message, deliveryTag, appToken);
 
@@ -151,12 +155,19 @@ namespace GenAIWorker.Messaging
                 }
             }
 
-            public Task HandleBasicCancelAsync(string consumerTag, CancellationToken cancellationToken) => Task.CompletedTask;
-            public Task HandleBasicCancelOkAsync(string consumerTag, CancellationToken cancellationToken) => Task.CompletedTask;
-            public Task HandleBasicConsumeOkAsync(string consumerTag, CancellationToken cancellationToken) => Task.CompletedTask;
-            public Task HandleBasicRecoverOkAsync(string consumerTag, CancellationToken cancellationToken) => Task.CompletedTask;
+            public Task HandleBasicCancelAsync(string consumerTag, CancellationToken cancellationToken) =>
+                Task.CompletedTask;
+
+            public Task HandleBasicCancelOkAsync(string consumerTag, CancellationToken cancellationToken) =>
+                Task.CompletedTask;
+
+            public Task HandleBasicConsumeOkAsync(string consumerTag, CancellationToken cancellationToken) =>
+                Task.CompletedTask;
+
+            public Task HandleBasicRecoverOkAsync(string consumerTag, CancellationToken cancellationToken) =>
+                Task.CompletedTask;
+
             public Task HandleChannelShutdownAsync(object model, ShutdownEventArgs reason) => Task.CompletedTask;
         }
     }
 }
-

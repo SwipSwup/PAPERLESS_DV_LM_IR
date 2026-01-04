@@ -7,11 +7,14 @@
 <div class="animate-fade-in">
     <!-- Hero / Drag Drop Zone -->
     <div class="mb-4">
-        <div id="dropZone" class="card d-flex flex-col align-center justify-center text-center" style="height: 300px; border: 2px dashed var(--border-color); background: radial-gradient(circle at center, rgba(245, 158, 11, 0.05), transparent 70%); cursor: pointer;">
+        <div id="dropZone" class="card d-flex flex-col align-center justify-center text-center"
+             style="height: 300px; border: 2px dashed var(--border-color); background: radial-gradient(circle at center, rgba(245, 158, 11, 0.05), transparent 70%); cursor: pointer;">
             <i class="fas fa-cloud-upload-alt mb-2" style="font-size: 3rem; color: var(--accent-primary);"></i>
             <h2 class="mb-2">Drag & Drop to Upload</h2>
             <p class="text-muted mb-4">or click to browse your files</p>
-            <button class="btn btn-primary" onclick="event.stopPropagation(); document.getElementById('fileInput').click()">Browse Files</button>
+            <button class="btn btn-primary"
+                    onclick="event.stopPropagation(); document.getElementById('fileInput').click()">Browse Files
+            </button>
             <input type="file" id="fileInput" hidden multiple accept=".pdf,.png,.jpg,.jpeg">
         </div>
     </div>
@@ -20,11 +23,14 @@
     <div class="d-flex align-center justify-between mb-4">
         <h3>Recent Documents</h3>
     </div>
-    <div id="recentDocsGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem;">
+    <div id="recentDocsGrid"
+         style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem;">
         <!-- Grid Items -->
     </div>
+</div>
 <!-- Upload Preview Modal -->
-<div id="uploadModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 100; align-items: center; justify-content: center;">
+<div id="uploadModal"
+     style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 100; align-items: center; justify-content: center;">
     <div class="card" style="width: 500px; max-width: 90%; max-height: 80vh; display: flex; flex-direction: column;">
         <div class="d-flex justify-between align-center mb-4">
             <h3 style="margin: 0;">Confirm Upload</h3>
@@ -32,14 +38,16 @@
                 <i class="fas fa-times"></i>
             </button>
         </div>
-        
-        <div id="uploadList" style="flex: 1; overflow-y: auto; margin-bottom: 1rem; border: 1px solid var(--border-color); border-radius: var(--radius);">
+
+        <div id="uploadList"
+             style="flex: 1; overflow-y: auto; margin-bottom: 1rem; border: 1px solid var(--border-color); border-radius: var(--radius);">
             <!-- Items injected here -->
         </div>
 
         <div id="uploadProgress" class="mb-3" style="display: none;">
             <div style="height: 6px; background: var(--secondary); border-radius: 3px; overflow: hidden;">
-                <div id="progressBar" style="width: 0%; height: 100%; background: var(--accent-primary); transition: width 0.3s;"></div>
+                <div id="progressBar"
+                     style="width: 0%; height: 100%; background: var(--accent-primary); transition: width 0.3s;"></div>
             </div>
         </div>
 
@@ -77,9 +85,9 @@
     });
 
     dropZone.addEventListener('drop', handleDrop, false);
-    dropZone.addEventListener('click', () => fileInput.click()); 
+    dropZone.addEventListener('click', () => fileInput.click());
 
-    fileInput.addEventListener('change', function() {
+    fileInput.addEventListener('change', function () {
         handleFiles(this.files);
     });
 
@@ -109,7 +117,7 @@
                 </button>
             </div>
         `).join('');
-        
+
         document.getElementById('fileCount').innerText = `${filesToUpload.length} files selected`;
         uploadModal.style.display = 'flex';
     }
@@ -131,7 +139,7 @@
 
     async function confirmUpload() {
         if (filesToUpload.length === 0) return;
-        
+
         const btn = document.querySelector('#uploadModal .btn-primary');
         const originalText = btn.innerHTML;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
@@ -139,14 +147,14 @@
 
         document.getElementById('uploadProgress').style.display = 'block';
         const progressBar = document.getElementById('progressBar');
-        
+
         let successCount = 0;
         const total = filesToUpload.length;
 
         for (let i = 0; i < total; i++) {
             const formData = new FormData();
             formData.append('File', filesToUpload[i]);
-            
+
             try {
                 const res = await fetch('http://localhost:8081/api/document', {
                     method: 'POST',
@@ -156,7 +164,7 @@
             } catch (e) {
                 console.error(e);
             }
-            
+
             progressBar.style.width = `${((i + 1) / total) * 100}%`;
         }
 
@@ -165,8 +173,8 @@
         closeModal();
         document.getElementById('uploadProgress').style.display = 'none';
         progressBar.style.width = '0%';
-        
-        loadDashboard(); 
+
+        loadDashboard();
     }
 
     // Dashboard Logic
@@ -174,7 +182,7 @@
         try {
             const res = await fetch('http://localhost:8081/api/document');
             const docs = await res.json();
-            
+
             // Recent docs logic
             const recentDocs = docs.sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt)).slice(0, 8);
 
@@ -216,12 +224,12 @@
             const loadingTask = pdfjsLib.getDocument(url);
             const pdf = await loadingTask.promise;
             const page = await pdf.getPage(1);
-            
+
             // Render at high quality, then CSS scales it down to fit/zoom
-            const scale = 1.0; 
-            const viewport = page.getViewport({ scale: scale });
+            const scale = 1.0;
+            const viewport = page.getViewport({scale: scale});
             const canvas = document.getElementById(`thumb-${docId}`);
-            if(!canvas) return;
+            if (!canvas) return;
 
             const context = canvas.getContext('2d');
             canvas.height = viewport.height;
@@ -232,17 +240,17 @@
                 viewport: viewport
             };
             await page.render(renderContext).promise;
-            
+
             const loadingEl = document.getElementById(`loading-${docId}`);
-            if(loadingEl) loadingEl.style.display = 'none';
+            if (loadingEl) loadingEl.style.display = 'none';
 
         } catch (e) {
             console.error(`Error generating thumbnail for ${docId}`, e);
             const canvas = document.getElementById(`thumb-${docId}`);
-           if(canvas) {
+            if (canvas) {
                 const parent = canvas.parentElement;
                 parent.innerHTML = '<div style="height: 100%; display: flex; align-items: center; justify-content: center;"><i class="fas fa-file-pdf text-accent" style="font-size: 3rem;"></i></div>';
-           }
+            }
         }
     }
 

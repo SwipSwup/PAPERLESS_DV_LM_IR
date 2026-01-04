@@ -2,15 +2,9 @@ using Serilog.Context;
 
 namespace API.Middleware;
 
-public class CorrelationIdMiddleware
+public class CorrelationIdMiddleware(RequestDelegate next)
 {
-    private readonly RequestDelegate _next;
     private const string CorrelationIdHeader = "X-Correlation-ID";
-
-    public CorrelationIdMiddleware(RequestDelegate next)
-    {
-        _next = next;
-    }
 
     public async Task Invoke(HttpContext context)
     {
@@ -29,7 +23,7 @@ public class CorrelationIdMiddleware
                 return Task.CompletedTask;
             });
 
-            await _next(context);
+            await next(context);
         }
     }
 }

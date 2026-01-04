@@ -65,7 +65,7 @@ public sealed class TesseractCliRunner(
     {
         using Process process = new Process();
         process.StartInfo = startInfo;
-        
+
         try
         {
             if (!process.Start())
@@ -105,7 +105,9 @@ public sealed class TesseractCliRunner(
         catch (System.ComponentModel.Win32Exception ex)
         {
             logger.LogError(ex, "Failed to start Tesseract process. Executable: {Path}", startInfo.FileName);
-            throw new InvalidOperationException($"Failed to start Tesseract. Make sure it is installed and '{startInfo.FileName}' is in your PATH. If running in Docker, ensure tesseract-ocr is installed.", ex);
+            throw new InvalidOperationException(
+                $"Failed to start Tesseract. Make sure it is installed and '{startInfo.FileName}' is in your PATH. If running in Docker, ensure tesseract-ocr is installed.",
+                ex);
         }
         catch (OperationCanceledException)
         {

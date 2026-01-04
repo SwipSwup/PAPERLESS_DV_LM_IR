@@ -1,5 +1,6 @@
 using ceTe.DynamicPDF.Rasterizer;
 using Core.DTOs;
+using Core.DTOs.Messaging;
 using Core.Models;
 using Core.Repositories.Interfaces;
 using Core.Messaging;

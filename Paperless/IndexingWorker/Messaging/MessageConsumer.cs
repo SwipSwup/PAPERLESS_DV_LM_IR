@@ -4,13 +4,14 @@ using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System.Text;
 using System.Text.Json;
+using Core.DTOs.Messaging;
 using IndexingWorker.Messaging;
 
 namespace IndexingWorker.Messaging
 {
     public interface IMessageConsumer
     {
-         Task ConsumeAsync<T>(string queueName, Func<T, ulong, CancellationToken, Task> onMessage, CancellationToken ct);
+        Task ConsumeAsync<T>(string queueName, Func<T, ulong, CancellationToken, Task> onMessage, CancellationToken ct);
     }
 
     public class MessageConsumer(
@@ -21,7 +22,7 @@ namespace IndexingWorker.Messaging
 
         private IConnection? _connection;
         private IChannel? _channel;
-        private IAsyncBasicConsumer? _consumer; 
+        private IAsyncBasicConsumer? _consumer;
 
         public async Task ConsumeAsync<T>(
             string queueName,
@@ -29,7 +30,7 @@ namespace IndexingWorker.Messaging
             CancellationToken ct)
         {
             await EnsureConnectedAsync();
-            
+
             // BasicQos not always supported/needed for all clients but good practice
             await _channel!.BasicQosAsync(0, 1, false);
 
@@ -37,11 +38,12 @@ namespace IndexingWorker.Messaging
 
             string consumerTag = await _channel!.BasicConsumeAsync(
                 queue: queueName,
-                autoAck: false, 
+                autoAck: false,
                 consumer: _consumer,
                 cancellationToken: ct);
 
-            logger.LogInformation("RabbitMQ Consumer started on queue '{queueName}'. Consumer Tag: {Tag}", queueName, consumerTag);
+            logger.LogInformation("RabbitMQ Consumer started on queue '{queueName}'. Consumer Tag: {Tag}", queueName,
+                consumerTag);
         }
 
         private async Task EnsureConnectedAsync()
@@ -61,7 +63,7 @@ namespace IndexingWorker.Messaging
             };
 
             _connection = await factory.CreateConnectionAsync();
-             _connection.ConnectionShutdownAsync += async (o, e) => 
+            _connection.ConnectionShutdownAsync += async (o, e) =>
                 logger.LogWarning("RabbitMQ Connection Shutdown: {Reason}", e.ReplyText);
 
             _channel = await _connection.CreateChannelAsync();
@@ -84,25 +86,27 @@ namespace IndexingWorker.Messaging
         }
 
         private class Consumer<T>(
-            IChannel channel, 
-            ILogger logger, 
+            IChannel channel,
+            ILogger logger,
             Func<T, ulong, CancellationToken, Task> onMessage,
             CancellationToken appToken) : IAsyncBasicConsumer
         {
             public IChannel Channel => channel;
 
             public async Task HandleBasicDeliverAsync(
-                string consumerTag, 
-                ulong deliveryTag, 
-                bool redelivered, 
-                string exchange, 
-                string routingKey, 
-                IReadOnlyBasicProperties properties, 
+                string consumerTag,
+                ulong deliveryTag,
+                bool redelivered,
+                string exchange,
+                string routingKey,
+                IReadOnlyBasicProperties properties,
                 ReadOnlyMemory<byte> body,
                 CancellationToken cancellationToken)
             {
                 // 1. Extract Correlation ID
-                string correlationId = properties.Headers != null && properties.Headers.TryGetValue("X-Correlation-Id", out object? headerVal) && headerVal is byte[] bytes
+                string correlationId = properties.Headers != null &&
+                                       properties.Headers.TryGetValue("X-Correlation-Id", out object? headerVal) &&
+                                       headerVal is byte[] bytes
                     ? Encoding.UTF8.GetString(bytes)
                     : Guid.NewGuid().ToString();
 
@@ -117,7 +121,7 @@ namespace IndexingWorker.Messaging
                         // logger.LogDebug("Message Body: {Body}", json); // Optional: keep debug logs
 
                         T? message = JsonSerializer.Deserialize<T>(json);
-                        
+
                         if (message == null)
                         {
                             logger.LogWarning("Received null message - Nacking");
@@ -126,10 +130,10 @@ namespace IndexingWorker.Messaging
                         }
 
                         // Inject CorrelationId into message if applicable
-                         if (message is Core.DTOs.DocumentMessageDto docMsg)
-                         {
-                             docMsg.CorrelationId = correlationId;
-                         }
+                        if (message is DocumentMessageDto docMsg)
+                        {
+                            docMsg.CorrelationId = correlationId;
+                        }
 
                         await onMessage(message, deliveryTag, appToken);
 
@@ -139,22 +143,30 @@ namespace IndexingWorker.Messaging
                     catch (Core.Exceptions.InfrastructureException ex) when (ex.IsTransient)
                     {
                         logger.LogWarning(ex, "Transient failure (Elastic/Network). Requeueing message.");
-                         // 3. Requeue for Retry
+                        // 3. Requeue for Retry
                         await Channel.BasicNackAsync(deliveryTag, false, true, appToken);
                     }
                     catch (Exception ex)
                     {
                         logger.LogError(ex, "Fatal error or Indexing failure. Sending to Dead Letter Queue.");
-                         // 4. Dead Letter (Reject without requeue)
+                        // 4. Dead Letter (Reject without requeue)
                         await Channel.BasicNackAsync(deliveryTag, false, false, appToken);
                     }
                 }
             }
 
-            public Task HandleBasicCancelAsync(string consumerTag, CancellationToken cancellationToken) => Task.CompletedTask;
-            public Task HandleBasicCancelOkAsync(string consumerTag, CancellationToken cancellationToken) => Task.CompletedTask;
-            public Task HandleBasicConsumeOkAsync(string consumerTag, CancellationToken cancellationToken) => Task.CompletedTask;
-            public Task HandleBasicRecoverOkAsync(string consumerTag, CancellationToken cancellationToken) => Task.CompletedTask;
+            public Task HandleBasicCancelAsync(string consumerTag, CancellationToken cancellationToken) =>
+                Task.CompletedTask;
+
+            public Task HandleBasicCancelOkAsync(string consumerTag, CancellationToken cancellationToken) =>
+                Task.CompletedTask;
+
+            public Task HandleBasicConsumeOkAsync(string consumerTag, CancellationToken cancellationToken) =>
+                Task.CompletedTask;
+
+            public Task HandleBasicRecoverOkAsync(string consumerTag, CancellationToken cancellationToken) =>
+                Task.CompletedTask;
+
             public Task HandleChannelShutdownAsync(object model, ShutdownEventArgs reason) => Task.CompletedTask;
         }
     }

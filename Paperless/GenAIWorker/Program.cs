@@ -21,14 +21,13 @@ Log.Logger = new LoggerConfiguration()
 try
 {
     HostApplicationBuilder builder = Host.CreateApplicationBuilder(args);
-
-    // Remove default logging providers
+// Remove default logging providers
     builder.Logging.ClearProviders();
     builder.Services.AddSerilog();
 
 // Config
     builder.Services.Configure<RabbitMqSettings>(builder.Configuration.GetSection("RabbitMq"));
-    builder.Services.Configure<GenAISettings>(builder.Configuration.GetSection("GenAI"));
+    builder.Services.Configure<GenAiSettings>(builder.Configuration.GetSection("GenAI"));
 
 // Database
     builder.Services.AddDbContext<PaperlessDBContext>(options =>
@@ -55,13 +54,13 @@ try
             Password = settings.Password,
             QueueName = "indexing"
         };
-        var logger = sp.GetRequiredService<ILogger<RabbitMqProducer>>();
+        ILogger<RabbitMqProducer> logger = sp.GetRequiredService<ILogger<RabbitMqProducer>>();
         return new RabbitMqProducer(producerSettings, logger);
     });
 
 // GenAI Service
     builder.Services.AddHttpClient<GenAiService>(client => { client.Timeout = TimeSpan.FromSeconds(60); });
-    builder.Services.AddScoped<IGenAIService, GenAiService>();
+    builder.Services.AddScoped<IGenAiService, GenAiService>();
 
 // Worker
     builder.Services.AddHostedService<Worker>();

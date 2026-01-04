@@ -14,9 +14,12 @@ namespace API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class DocumentController(DocumentService service, IStorageService storageService, IMapper mapper, IValidator<DocumentDto> validator) : ControllerBase
+public class DocumentController(
+    DocumentService service,
+    IStorageService storageService,
+    IMapper mapper,
+    IValidator<DocumentDto> validator) : ControllerBase
 {
-
     /// <summary>
     /// Retrieves all documents.
     /// </summary>
@@ -69,7 +72,7 @@ public class DocumentController(DocumentService service, IStorageService storage
         // Determine content type based on extension or default to octet-stream/pdf
         string contentType = "application/octet-stream";
         string ext = Path.GetExtension(document.FileName).ToLowerInvariant();
-        
+
         contentType = ext switch
         {
             ".pdf" => "application/pdf",
@@ -83,7 +86,7 @@ public class DocumentController(DocumentService service, IStorageService storage
         System.Net.Mime.ContentDisposition cd = new System.Net.Mime.ContentDisposition
         {
             FileName = document.FileName,
-            Inline = true  // This forces the browser to try and open it
+            Inline = true // This forces the browser to try and open it
         };
         Response.Headers.Append("Content-Disposition", cd.ToString());
 
@@ -105,7 +108,8 @@ public class DocumentController(DocumentService service, IStorageService storage
         Log.Information("DocumentController: Create called for file={FileName}", uploadDto.File.FileName);
 
         // 2. Upload file to MinIO
-        string fileName = $"{DateTime.UtcNow.Year}/{DateTime.UtcNow.Month:D2}/{DateTime.UtcNow.Day:D2}/{Guid.NewGuid()}_{uploadDto.File.FileName}";
+        string fileName =
+            $"{DateTime.UtcNow.Year}/{DateTime.UtcNow.Month:D2}/{DateTime.UtcNow.Day:D2}/{Guid.NewGuid()}_{uploadDto.File.FileName}";
         using (Stream stream = uploadDto.File.OpenReadStream())
         {
             await storageService.UploadFileAsync(stream, fileName, uploadDto.File.ContentType);
@@ -137,18 +141,22 @@ public class DocumentController(DocumentService service, IStorageService storage
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "DocumentController: Failed to save document metadata. Executing compensating transaction (deleting file).");
+            Log.Error(ex,
+                "DocumentController: Failed to save document metadata. Executing compensating transaction (deleting file).");
             // COMPENSATING ACTION: Delete the file from Storage to prevent orphans
             try
             {
                 await storageService.DeleteFileAsync(fileName);
-                Log.Information("DocumentController: Compensating transaction successful. File {FileName} deleted.", fileName);
+                Log.Information("DocumentController: Compensating transaction successful. File {FileName} deleted.",
+                    fileName);
             }
             catch (Exception deleteEx)
             {
                 // Critical failure: Both DB save failed AND cleanup failed. 
                 // In a real system, we'd log this to a special "Orphans" table or alert.
-                Log.Fatal(deleteEx, "DocumentController: Compensating transaction FAILED. File {FileName} is orphaned in MinIO.", fileName);
+                Log.Fatal(deleteEx,
+                    "DocumentController: Compensating transaction FAILED. File {FileName} is orphaned in MinIO.",
+                    fileName);
             }
 
             throw; // Re-throw original exception to return 500

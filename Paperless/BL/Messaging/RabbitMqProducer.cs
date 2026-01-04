@@ -1,7 +1,7 @@
 ﻿using System.Text;
 using Core.Configuration;
 using System.Text.Json;
-using Core.DTOs;
+using Core.DTOs.Messaging;
 using Core.Exceptions;
 using Core.Messaging;
 using RabbitMQ.Client;
@@ -21,7 +21,8 @@ namespace BL.Messaging
             _logger = logger;
             try
             {
-                _logger.LogInformation("RabbitMqProducer: Initializing connection to {Host}:{Port}", settings.Host, settings.Port);
+                _logger.LogInformation("RabbitMqProducer: Initializing connection to {Host}:{Port}", settings.Host,
+                    settings.Port);
                 _queueName = settings.QueueName;
 
                 ConnectionFactory factory = new ConnectionFactory
@@ -41,7 +42,6 @@ namespace BL.Messaging
                     exclusive: false,
                     autoDelete: false
                 ).GetAwaiter().GetResult();
-
 
 
                 _logger.LogInformation("RabbitMqProducer: Connection and channel initialized");
@@ -65,7 +65,6 @@ namespace BL.Messaging
                     routingKey: _queueName,
                     body: body
                 );
-
 
 
                 _logger.LogInformation("RabbitMqProducer: Message published for Document ID {Id}", message.DocumentId);
@@ -95,7 +94,8 @@ namespace BL.Messaging
         {
             try
             {
-                _logger.LogInformation("RabbitMqProducer: Publishing document message for Document ID {Id}", message.DocumentId);
+                _logger.LogInformation("RabbitMqProducer: Publishing document message for Document ID {Id}",
+                    message.DocumentId);
                 string json = JsonSerializer.Serialize(message);
                 byte[] body = Encoding.UTF8.GetBytes(json);
 
@@ -106,12 +106,13 @@ namespace BL.Messaging
                 );
 
 
-
-                _logger.LogInformation("RabbitMqProducer: Document message published for Document ID {Id}", message.DocumentId);
+                _logger.LogInformation("RabbitMqProducer: Document message published for Document ID {Id}",
+                    message.DocumentId);
             }
             catch (Exception ex)
             {
-                throw new MessagingException($"Failed to publish document message for Document ID {message.DocumentId}.", ex);
+                throw new MessagingException(
+                    $"Failed to publish document message for Document ID {message.DocumentId}.", ex);
             }
         }
     }

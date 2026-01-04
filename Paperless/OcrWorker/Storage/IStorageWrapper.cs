@@ -1,4 +1,5 @@
 ﻿using Core.DTOs;
+using Core.DTOs.Messaging;
 
 namespace OcrWorker.Storage
 {

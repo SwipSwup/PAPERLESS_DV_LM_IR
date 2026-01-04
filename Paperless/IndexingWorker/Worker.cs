@@ -4,6 +4,10 @@ using Core.Repositories.Interfaces;
 using IndexingWorker.Messaging;
 using Microsoft.Extensions.Options;
 using Core.Configuration;
+using Core.DTOs.Messaging;
+using Core.Models;
+using Elastic.Clients.Elasticsearch.IndexManagement;
+using ExistsResponse = Elastic.Clients.Elasticsearch.IndexManagement.ExistsResponse;
 
 namespace IndexingWorker;
 
@@ -21,8 +25,8 @@ public class Worker(
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         await EnsureIndexExistsAsync(stoppingToken);
-        
-        var queueName = _rabbitSettings.QueueName ?? "indexing";
+
+        string queueName = _rabbitSettings.QueueName ?? "indexing";
         logger.LogInformation("IndexingWorker starting. Consuming from queue: {queue}", queueName);
 
         while (!stoppingToken.IsCancellationRequested)
@@ -30,7 +34,7 @@ public class Worker(
             try
             {
                 await consumer.ConsumeAsync<DocumentMessageDto>(
-                    queueName: queueName, 
+                    queueName: queueName,
                     onMessage: OnMessage,
                     stoppingToken);
 
@@ -59,12 +63,12 @@ public class Worker(
 
     private async Task EnsureIndexExistsAsync(CancellationToken ct)
     {
-        try 
+        try
         {
-            var existsResponse = await elasticClient.Indices.ExistsAsync(IndexName, ct);
+            ExistsResponse existsResponse = await elasticClient.Indices.ExistsAsync(IndexName, ct);
             if (!existsResponse.Exists)
             {
-                var response = await elasticClient.Indices.CreateAsync(IndexName, c => c
+                CreateIndexResponse response = await elasticClient.Indices.CreateAsync(IndexName, c => c
                     .Mappings(m => m
                         // Map specific fields as Text for full-text search capabilities.
                         .Properties<Core.DTOs.DocumentDto>(p => p
@@ -73,7 +77,7 @@ public class Worker(
                             .Text(d => d.Summary)
                         )
                     ), ct);
-                    
+
                 if (response.IsValidResponse)
                 {
                     logger.LogInformation("Created index {index}", IndexName);
@@ -94,40 +98,42 @@ public class Worker(
     {
         using (logger.BeginScope(new Dictionary<string, object> { ["CorrelationId"] = msg.CorrelationId }))
         {
-            logger.LogInformation("Indexing document {id} (CorrelationId: {CorrelationId})", msg.DocumentId, msg.CorrelationId);
+            logger.LogInformation("Indexing document {id} (CorrelationId: {CorrelationId})", msg.DocumentId,
+                msg.CorrelationId);
 
-        try 
-        {
-            using (var scope = serviceProvider.CreateScope())
+            try
             {
-                var repo = scope.ServiceProvider.GetRequiredService<IDocumentRepository>();
-                var doc = await repo.GetByIdAsync(msg.DocumentId);
-
-                if (doc != null && !string.IsNullOrEmpty(doc.OcrText))
+                using (IServiceScope scope = serviceProvider.CreateScope())
                 {
-                    logger.LogInformation("Indexing document content for {id}", msg.DocumentId);
-                    
-                    var response = await elasticClient.IndexAsync(doc, IndexName, ct);
-                    
-                    if (response.IsValidResponse)
+                    IDocumentRepository repo = scope.ServiceProvider.GetRequiredService<IDocumentRepository>();
+                    Document? doc = await repo.GetByIdAsync(msg.DocumentId);
+
+                    if (doc != null && !string.IsNullOrEmpty(doc.OcrText))
                     {
-                        logger.LogInformation("Successfully indexed document {id}", msg.DocumentId);
+                        logger.LogInformation("Indexing document content for {id}", msg.DocumentId);
+
+                        IndexResponse response = await elasticClient.IndexAsync(doc, IndexName, ct);
+
+                        if (response.IsValidResponse)
+                        {
+                            logger.LogInformation("Successfully indexed document {id}", msg.DocumentId);
+                        }
+                        else
+                        {
+                            logger.LogError("Failed to index document {id}: {debug}", msg.DocumentId,
+                                response.DebugInformation);
+                        }
                     }
                     else
                     {
-                        logger.LogError("Failed to index document {id}: {debug}", msg.DocumentId, response.DebugInformation);
+                        logger.LogWarning("Document {id} not found or no OCR text", msg.DocumentId);
                     }
                 }
-                else
-                {
-                    logger.LogWarning("Document {id} not found or no OCR text", msg.DocumentId);
-                }
             }
-        }
-        catch (Exception ex)
-        {
-             logger.LogError(ex, "Error indexing document {id}", msg.DocumentId);
-        }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error indexing document {id}", msg.DocumentId);
+            }
         }
     }
 }

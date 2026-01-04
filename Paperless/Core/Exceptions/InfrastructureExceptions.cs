@@ -12,22 +12,16 @@ namespace Core.Exceptions
             IsTransient = isTransient;
         }
 
-        public InfrastructureException(string message, Exception inner, bool isTransient = false) 
+        protected InfrastructureException(string message, Exception inner, bool isTransient = false) 
             : base(message, inner) 
         {
             IsTransient = isTransient;
         }
     }
 
-    public class StorageException : InfrastructureException
-    {
-        public StorageException(string message, Exception inner) 
-            : base(message, inner, isTransient: false) { }
-    }
+    public class StorageException(string message, Exception inner)
+        : InfrastructureException(message, inner, isTransient: false);
     
-    public class OcrGenerationException : InfrastructureException
-    {
-        public OcrGenerationException(string message, Exception inner, bool isTransient) 
-            : base(message, inner, isTransient) { }
-    }
+    public class OcrGenerationException(string message, Exception inner, bool isTransient)
+        : InfrastructureException(message, inner, isTransient);
 }

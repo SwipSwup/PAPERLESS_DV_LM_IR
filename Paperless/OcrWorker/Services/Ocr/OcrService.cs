@@ -5,20 +5,18 @@ using OcrWorker.Services.Tesseract;
 
 namespace OcrWorker.Services.Ocr;
 
-public class OcrService(ITesseractCliRunner tesseract, IPdfConverter pdfConverter, ILogger<OcrService> logger) : IOcrService
+public class OcrService(ITesseractCliRunner tesseract, IPdfConverter pdfConverter, ILogger<OcrService> logger)
+    : IOcrService
 {
     public async Task<string> ExtractTextFromPdfAsync(string pdfPath, CancellationToken ct)
     {
-        // 1. Validation
         if (string.IsNullOrWhiteSpace(pdfPath))
             throw new ArgumentNullException(nameof(pdfPath));
 
-        // 2. Structured Logging
         logger.LogInformation("Starting OCR extraction for file: {PdfPath}", pdfPath);
 
         try
         {
-            // 3. Execution
             logger.LogInformation("Converting PDF to Image bytes...");
             List<byte[]> pages = await pdfConverter.ConvertToPngBytesAsync(pdfPath, ct);
 
@@ -32,15 +30,15 @@ public class OcrService(ITesseractCliRunner tesseract, IPdfConverter pdfConverte
             }
 
             logger.LogInformation("OCR completed successfully. Total length: {Length}", fullText.Length);
-            
+
             if (fullText.Length == 0)
             {
                 logger.LogWarning("OCR Result is empty or whitespace for file {PdfPath}", pdfPath);
             }
-            
+
             return fullText.ToString();
         }
-        catch (Exception ex) when (ex is not DmsException) // Don't wrap if already wrapped
+        catch (Exception ex) when (ex is not DmsException)
         {
             // Catch-all for Tesseract or System errors
             logger.LogError(ex, "Critical failure in OCR Engine for file {PdfPath}", pdfPath);

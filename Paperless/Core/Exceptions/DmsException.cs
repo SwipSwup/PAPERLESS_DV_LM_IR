@@ -6,9 +6,13 @@ namespace Core.Exceptions
     {
         public string? CorrelationId { get; set; }
 
-        protected DmsException(string message) : base(message) { }
+        protected DmsException(string message) : base(message)
+        {
+        }
 
-        protected DmsException(string message, Exception innerException) 
-            : base(message, innerException) { }
+        protected DmsException(string message, Exception innerException)
+            : base(message, innerException)
+        {
+        }
     }
 }

@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using Core.DTOs;
+using Core.DTOs.Messaging;
 using Core.Exceptions;
 using Core.Messaging;
 using Core.Models;
@@ -84,7 +85,9 @@ namespace BL.Services
             try
             {
                 string correlationId = Guid.NewGuid().ToString();
-                _logger.LogInformation("DocumentService: Publishing message for Document ID={Id} CorrelationId={CorrelationId}", document.Id, correlationId);
+                _logger.LogInformation(
+                    "DocumentService: Publishing message for Document ID={Id} CorrelationId={CorrelationId}",
+                    document.Id, correlationId);
                 await _producer.PublishDocumentAsync(new DocumentMessageDto
                 {
                     DocumentId = document.Id,
@@ -93,11 +96,14 @@ namespace BL.Services
                     UploadedAt = document.UploadedAt,
                     CorrelationId = correlationId
                 });
-                _logger.LogInformation("DocumentService: Published message for Document ID={Id} CorrelationId={CorrelationId}", document.Id, correlationId);
+                _logger.LogInformation(
+                    "DocumentService: Published message for Document ID={Id} CorrelationId={CorrelationId}",
+                    document.Id, correlationId);
             }
             catch (MessagingException ex)
             {
-                throw new ServiceException($"Document added but failed to publish message for Document ID {document.Id}.", ex);
+                throw new ServiceException(
+                    $"Document added but failed to publish message for Document ID {document.Id}.", ex);
             }
 
             return _mapper.Map<DocumentDto>(document);
@@ -155,7 +161,8 @@ namespace BL.Services
         // --- Business Logic ---
         public async Task LogAccessAsync(int documentId, DateTime date)
         {
-            _logger.LogInformation("DocumentService.LogAccessAsync called for Document ID={Id} Date={Date}", documentId, date.ToString("yyyy-MM-dd"));
+            _logger.LogInformation("DocumentService.LogAccessAsync called for Document ID={Id} Date={Date}", documentId,
+                date.ToString("yyyy-MM-dd"));
             try
             {
                 List<AccessLog> logs = await _accessLogRepo.GetByDocumentIdAsync(documentId);
@@ -178,13 +185,16 @@ namespace BL.Services
             }
             catch (DataAccessException ex)
             {
-                throw new ServiceException($"Failed to log access for Document ID {documentId} on {date:yyyy-MM-dd}.", ex);
+                throw new ServiceException($"Failed to log access for Document ID {documentId} on {date:yyyy-MM-dd}.",
+                    ex);
             }
         }
 
         public async Task AddLogToDocumentAsync(int documentId, string action, string? details = null)
         {
-            _logger.LogInformation("DocumentService.AddLogToDocumentAsync called for Document ID={Id} Action='{Action}'", documentId, action);
+            _logger.LogInformation(
+                "DocumentService.AddLogToDocumentAsync called for Document ID={Id} Action='{Action}'", documentId,
+                action);
             try
             {
                 DocumentLog logEntry = new DocumentLog
@@ -204,7 +214,8 @@ namespace BL.Services
 
         public async Task AddTagToDocumentAsync(int documentId, TagDto tagDto)
         {
-            _logger.LogInformation("DocumentService.AddTagToDocumentAsync called for Document ID={Id} Tag='{TagName}'", documentId, tagDto.Name);
+            _logger.LogInformation("DocumentService.AddTagToDocumentAsync called for Document ID={Id} Tag='{TagName}'",
+                documentId, tagDto.Name);
             try
             {
                 Document? document = await _documentRepo.GetByIdAsync(documentId);
@@ -228,13 +239,16 @@ namespace BL.Services
 
         public async Task RemoveTagFromDocumentAsync(int documentId, string tagName)
         {
-            _logger.LogInformation("DocumentService.RemoveTagFromDocumentAsync called for Document ID={Id} Tag='{TagName}'", documentId, tagName);
+            _logger.LogInformation(
+                "DocumentService.RemoveTagFromDocumentAsync called for Document ID={Id} Tag='{TagName}'", documentId,
+                tagName);
             try
             {
                 Document? document = await _documentRepo.GetByIdAsync(documentId);
                 if (document == null)
                 {
-                    _logger.LogWarning("DocumentService.RemoveTagFromDocumentAsync: Document ID={Id} not found", documentId);
+                    _logger.LogWarning("DocumentService.RemoveTagFromDocumentAsync: Document ID={Id} not found",
+                        documentId);
                     return;
                 }
 

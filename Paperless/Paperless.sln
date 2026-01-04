@@ -1,6 +1,6 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# 
+#
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Core", "Core\Core.csproj", "{C79316EB-F5C3-4727-9F2B-07C7DAF11303}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DAL", "DAL\DAL.csproj", "{84AB7CEB-2A65-4B6D-A876-12CFC9587F07}"
@@ -23,6 +23,10 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "API", "API\API.csproj", "{B2FE931E-5A14-42C1-83BC-81075D51A8DE}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tests.Integration", "Tests.Integration\Tests.Integration.csproj", "{B75B8D98-D2DD-4ED2-9D58-882691DD91D9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BatchWorker", "BatchWorker\BatchWorker.csproj", "{41C2FB39-96F9-4FE8-B549-606481AD53FA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IndexingWorker", "IndexingWorker\IndexingWorker.csproj", "{AC63A9C4-9097-40D3-8EFE-10552490B2FE}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -66,5 +70,13 @@ Global
 		{B75B8D98-D2DD-4ED2-9D58-882691DD91D9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B75B8D98-D2DD-4ED2-9D58-882691DD91D9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B75B8D98-D2DD-4ED2-9D58-882691DD91D9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{41C2FB39-96F9-4FE8-B549-606481AD53FA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{41C2FB39-96F9-4FE8-B549-606481AD53FA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{41C2FB39-96F9-4FE8-B549-606481AD53FA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{41C2FB39-96F9-4FE8-B549-606481AD53FA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AC63A9C4-9097-40D3-8EFE-10552490B2FE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AC63A9C4-9097-40D3-8EFE-10552490B2FE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AC63A9C4-9097-40D3-8EFE-10552490B2FE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AC63A9C4-9097-40D3-8EFE-10552490B2FE}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

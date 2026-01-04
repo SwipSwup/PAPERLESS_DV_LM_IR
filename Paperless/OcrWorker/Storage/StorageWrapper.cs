@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Options;
 using Core.Configuration;
 using Core.DTOs;
+using Core.DTOs.Messaging;
 using Minio;
 using Minio.DataModel.Args;
 using Minio.Exceptions;
@@ -57,7 +58,8 @@ public class StorageWrapper : IStorageWrapper
                 .WithObject(objectName)
                 .WithCallbackStream(async (stream, token) =>
                 {
-                    await using FileStream file = new FileStream(tempFile, FileMode.Create, FileAccess.Write, FileShare.None, 4096, useAsync: true);
+                    await using FileStream file = new FileStream(tempFile, FileMode.Create, FileAccess.Write,
+                        FileShare.None, 4096, useAsync: true);
                     await stream.CopyToAsync(file, token);
                 });
 

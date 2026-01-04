@@ -34,6 +34,25 @@ services:
     volumes:
     - "D:\\FH\\WS25\\SWEN\\Paperless\\GenAIWorker:/app:rw"
     - "D:\\FH\\WS25\\SWEN\\Paperless:/src:rw"
+    - "C:\\Users\\david\\AppData\\Roaming\\Microsoft\\UserSecrets:/home/app/.microsoft/usersecrets"
+    - "C:\\Users\\david\\.nuget\\packages:/home/app/.nuget/packages"
+    working_dir: "/app"
+  indexingworker:
+    build:
+      context: "D:\\FH\\WS25\\SWEN\\Paperless"
+      dockerfile: "IndexingWorker/Dockerfile"
+      target: "base"
+    command: []
+    entrypoint:
+    - "dotnet"
+    - "/app/bin/Debug/net8.0/IndexingWorker.dll"
+    environment:
+      DOTNET_USE_POLLING_FILE_WATCHER: "true"
+    image: "indexingworker:dev"
+    ports: []
+    volumes:
+    - "D:\\FH\\WS25\\SWEN\\Paperless\\IndexingWorker:/app:rw"
+    - "D:\\FH\\WS25\\SWEN\\Paperless:/src:rw"
     - "C:\\Users\\david\\.nuget\\packages:/home/app/.nuget/packages"
     working_dir: "/app"
   ocrworker:

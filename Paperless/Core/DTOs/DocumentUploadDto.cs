@@ -5,8 +5,7 @@ namespace Core.DTOs
 {
     public class DocumentUploadDto
     {
-        [Required]
-        public IFormFile File { get; set; } = null!;
+        [Required] public IFormFile File { get; set; } = null!;
 
         public string? Title { get; set; }
 

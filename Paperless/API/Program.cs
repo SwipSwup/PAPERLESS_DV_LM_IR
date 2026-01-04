@@ -163,4 +163,6 @@ app.MapGet("/health", () => Results.Ok("Healthy"));
 // --------------------
 app.Run();
 
-public partial class Program { }
+public partial class Program
+{
+}

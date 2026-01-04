@@ -1,4 +1,5 @@
 using Core.DTOs;
+using Core.DTOs.Messaging;
 using Core.Models;
 using Core.Repositories.Interfaces;
 using Core.Exceptions;
@@ -11,7 +12,7 @@ namespace GenAIWorker
     public class Worker(
         ILogger<Worker> logger,
         IMessageConsumer consumer,
-        IGenAIService genAiService,
+        IGenAiService genAiService,
         IDocumentMessageProducer producer,
         IServiceProvider serviceProvider)
         : BackgroundService

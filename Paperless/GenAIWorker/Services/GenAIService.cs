@@ -7,13 +7,13 @@ using Microsoft.Extensions.Options;
 
 namespace GenAIWorker.Services
 {
-    public class GenAiService(
-        IOptions<GenAISettings> settings,
+    public partial class GenAiService(
+        IOptions<GenAiSettings> settings,
         ILogger<GenAiService> logger,
         HttpClient httpClient)
-        : IGenAIService
+        : IGenAiService
     {
-        private readonly GenAISettings _settings = settings.Value;
+        private readonly GenAiSettings _settings = settings.Value;
         private const string BaseUrl = "https://generativelanguage.googleapis.com/v1";
         private const int MaxTextLength = 30000;
         private const int MaxTagLength = 100;
@@ -26,21 +26,29 @@ namespace GenAIWorker.Services
 
             string processedText = TruncateText(text);
             string prompt = $"Act as a professional document archivist for the 'Paperless DMS' system. " +
-                            $"Provide a meaningful and detailed summary of the following document text in 3-5 sentences. " +
-                            $"The summary will be used for full-text search and quick user previews. " +
-                            $"Focus on accurately capturing the document type, involved parties, key dates, monetary values (if any), and the core subject matter. " +
-                            $"Do not use phrases like 'The document contains' or 'Here is a summary'; simply state the facts.\n\n" +
+                            $"Provide a concise, high-density summary of the following document text. " +
+                            $"The summary will be used for quick user previews in a list view.\n" +
+                            $"Rules:\n" +
+                            $"1. The summary MUST be exactly 2 to 3 sentences long.\n" +
+                            $"2. Prioritize key facts: document type (invoice, contract, etc.), specific parties involved, dates, and monetary amounts.\n" +
+                            $"3. Start directly with the main subject. Do not use intro phrases like 'This document is'.\n" +
+                            $"4. Use professional, objective language.\n\n" +
                             $"Text:\n{processedText}";
 
-            GeminiGenerateContentRequest request = CreateRequest(prompt, _settings.Temperature, _settings.MaxTokens);
-            
+            GeminiGenerateContentRequest request = CreateRequest(prompt, _settings.Temperature, 2000);
+
             return await ExecuteGeminiRequestAsync(request, response =>
             {
-                string? summary = response.Candidates?.FirstOrDefault()?.Content?.Parts?.FirstOrDefault()?.Text;
+                var parts = response.Candidates?.FirstOrDefault()?.Content?.Parts;
+                string summary = parts != null 
+                    ? string.Join("", parts.Select(p => p.Text)) 
+                    : string.Empty;
+
                 if (string.IsNullOrWhiteSpace(summary))
                 {
                     throw new ServiceException("Received empty summary from GenAI service");
                 }
+
                 logger.LogInformation("Successfully generated summary of length {length}", summary.Length);
                 return Task.FromResult(summary);
             }, cancellationToken);
@@ -61,19 +69,26 @@ namespace GenAIWorker.Services
             string processedText = TruncateText(text);
             string prompt = BuildTagGenerationPrompt(processedText);
 
-            GeminiGenerateContentRequest request = CreateRequest(prompt, _settings.Temperature, 200);
+            GeminiGenerateContentRequest request = CreateRequest(prompt, _settings.Temperature, 2000);
 
             return await ExecuteGeminiRequestAsync(request, response =>
             {
-                string? tagsText = response.Candidates?.FirstOrDefault()?.Content?.Parts?.FirstOrDefault()?.Text;
+                var parts = response.Candidates?.FirstOrDefault()?.Content?.Parts;
+                string tagsText = parts != null 
+                    ? string.Join("", parts.Select(p => p.Text)) 
+                    : string.Empty;
+                
+                // Debug log to see exactly what the model returned
+                logger.LogInformation("GenAI Raw Tag Response: {response}", tagsText);
+
                 if (string.IsNullOrWhiteSpace(tagsText))
                 {
-                   logger.LogWarning("Received empty tags from Gemini API");
-                   return Task.FromResult(new List<Tag>());
+                    logger.LogWarning("Received empty tags from Gemini API");
+                    return Task.FromResult(new List<Tag>());
                 }
-                
-                List<Tag> tags = ParseTagsWithColors(tagsText);
-                
+
+                List<Tag> tags = ParseTagsFromJson(tagsText);
+
                 logger.LogInformation("Successfully generated {count} tags", tags.Count);
                 return Task.FromResult(tags);
             }, cancellationToken);
@@ -83,61 +98,93 @@ namespace GenAIWorker.Services
         {
             var categories = new[]
             {
-                new { Name = "Financial & Money", Colors = new[] { "#f59e0b" /*Amber*/, "#f97316" /*Orange*/ }, Desc = "Invoices, Receipts, Tax, Offers" },
-                new { Name = "Legal & Formal", Colors = new[] { "#3b82f6" /*Blue*/, "#6366f1" /*Indigo*/ }, Desc = "Contracts, Agreements, Policy, Official" },
-                new { Name = "Urgent & Critical", Colors = new[] { "#ef4444" /*Red*/ }, Desc = "Warnings, Deadlines, Errors, Important" },
-                new { Name = "Personal & Private", Colors = new[] { "#8b5cf6" /*Purple*/, "#ec4899" /*Pink*/ }, Desc = "Medical, Family, Identity, Sensitive" },
-                new { Name = "Success & Verified", Colors = new[] { "#10b981" /*Green*/, "#14b8a6" /*Teal*/, "#84cc16" /*Lime*/ }, Desc = "Paid, Completed, Certified, Safe" },
-                new { Name = "General & Archive", Colors = new[] { "#64748b" /*Slate*/, "#71717a" /*Zinc*/ }, Desc = "Logs, Notes, Drafts, Misc" }
+                new
+                {
+                    Name = "Financial & Money", Colors = new[] { "#f59e0b" /*Amber*/, "#f97316" /*Orange*/ },
+                    Desc = "Invoices, Receipts, Tax, Offers"
+                },
+                new
+                {
+                    Name = "Legal & Formal", Colors = new[] { "#3b82f6" /*Blue*/, "#6366f1" /*Indigo*/ },
+                    Desc = "Contracts, Agreements, Policy, Official"
+                },
+                new
+                {
+                    Name = "Urgent & Critical", Colors = new[] { "#ef4444" /*Red*/ },
+                    Desc = "Warnings, Deadlines, Errors, Important"
+                },
+                new
+                {
+                    Name = "Personal & Private", Colors = new[] { "#8b5cf6" /*Purple*/, "#ec4899" /*Pink*/ },
+                    Desc = "Medical, Family, Identity, Sensitive"
+                },
+                new
+                {
+                    Name = "Success & Verified",
+                    Colors = new[] { "#10b981" /*Green*/, "#14b8a6" /*Teal*/, "#84cc16" /*Lime*/ },
+                    Desc = "Paid, Completed, Certified, Safe"
+                },
+                new
+                {
+                    Name = "General & Archive", Colors = new[] { "#64748b" /*Slate*/, "#71717a" /*Zinc*/ },
+                    Desc = "Logs, Notes, Drafts, Misc"
+                }
             };
 
-            var colorGuide = string.Join("\n", categories.Select(c => 
+            string colorGuide = string.Join("\n", categories.Select(c =>
                 $"   - {c.Name} ({c.Desc}): {string.Join(", ", c.Colors)}"));
 
-            return $"Act as a smart automated filing system. Analyze the following text and generate 3-5 meta-tags. " +
-                   $"For each tag, select the most appropriate color based on the semantic meaning of the tag.\n\n" +
+            return $"Act as a smart automated filing system. Analyze the following text and generate a JSON array of 2 to 4 distinct meta-tags. " +
+                   $"Tags should categorize the document for efficient retrieval.\n\n" +
                    $"Color Selection Guide:\n" +
                    $"{colorGuide}\n\n" +
                    $"Rules:\n" +
-                   $"1. Output format MUST be strictly: TagName|ColorHex (e.g., 'Invoice|#f97316')\n" +
-                   $"2. Return one tag per line.\n" +
-                   $"3. TagName should be Title Case, 1-3 words.\n" +
-                   $"4. Choose the color that best fits the mood or category of the tag.\n" +
-                   $"5. No bullets, numbers, or markdown.\n\n" +
+                   $"1. Output MUST be a valid JSON array of objects with 'name' and 'color' properties.\n" +
+                   $"2. Generate exactly 2 to 4 tags.\n" +
+                   $"3. Tag Strategy:\n" +
+                   $"   - Tag 1: Broad Category (e.g., Financial, Legal, Personal, Technic).\n" +
+                   $"   - Tag 2: Specific Type (e.g., Invoice, Contract, Prescription, Manual).\n" +
+                   $"   - Tag 3-4 (Optional): Key Entity or Topic (e.g., Employer Name, 'Tax 2024', 'Warranty').\n" +
+                   $"4. Tag names should be Title Case, short (1-3 words) and visually clean.\n" +
+                   $"5. Select colors that intuitively match the tag meaning (e.g., Red for Urgent, Green for Success).\n" +
+                   $"6. Do NOT wrap the JSON in markdown.\n\n" +
+                   $"Example Output:\n" +
+                   $"[\n" +
+                   $"  {{ \"name\": \"Financial\", \"color\": \"#f59e0b\" }},\n" +
+                   $"  {{ \"name\": \"Invoice\", \"color\": \"#f97316\" }},\n" +
+                   $"  {{ \"name\": \"Amazone\", \"color\": \"#64748b\" }}\n" +
+                   $"]\n\n" +
                    $"Text:\n{text}";
         }
 
-        // Replaces ParseTagsFromResponse and AssignColorsToTags
-        private List<Tag> ParseTagsWithColors(string response)
+        private List<Tag> ParseTagsFromJson(string response)
         {
-            var result = new List<Tag>();
-            var lines = response.Split(['\n', '\r'], StringSplitOptions.RemoveEmptyEntries);
-
-            foreach (var line in lines)
+            try
             {
-                try 
-                {
-                    // Clean the line of bullets/numbers just in case the LLM ignored instructions
-                    var cleanLine = System.Text.RegularExpressions.Regex.Replace(line.Trim(), @"^[-•\d.\s]+", "");
-                    
-                    if (string.IsNullOrWhiteSpace(cleanLine)) continue;
+                // Remove markdown code blocks if present
+                string json = response.Replace("```json", "").Replace("```", "").Trim();
+                
+                var tags = JsonSerializer.Deserialize<List<TagDto>>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                
+                if (tags == null) return [];
 
-                    var parts = cleanLine.Split('|');
-                    string name = parts[0].Trim();
-                    string color = parts.Length > 1 ? parts[1].Trim() : Core.Constants.TagPalette.GetRandomColor();
-
-                    // Basic validation
-                    if (name.Length > MaxTagLength) name = name.Substring(0, MaxTagLength);
-
-                    result.Add(new Tag { Name = name, Color = color });
-                }
-                catch (Exception ex)
-                {
-                    logger.LogWarning("Failed to parse tag line '{line}': {message}", line, ex.Message);
-                }
+                return tags.Select(t => new Tag 
+                { 
+                    Name = t.Name?.Length > MaxTagLength ? t.Name[..MaxTagLength] : t.Name ?? "Unknown", 
+                    Color = t.Color ?? Core.Constants.TagPalette.GetRandomColor() 
+                }).ToList();
             }
-
-            return result;
+            catch (Exception ex)
+            {
+                logger.LogWarning("Failed to parse JSON tags: {message}. Raw response: {response}", ex.Message, response);
+                return [];
+            }
+        }
+        
+        private class TagDto
+        {
+            public string? Name { get; set; }
+            public string? Color { get; set; }
         }
 
         private void ValidateInput(string text)
@@ -147,22 +194,23 @@ namespace GenAIWorker.Services
                 logger.LogWarning("Empty text provided for generation");
                 throw new ArgumentException("Text cannot be empty", nameof(text));
             }
+
             ValidateApiKey();
         }
 
         private void ValidateApiKey()
         {
-            if (string.IsNullOrWhiteSpace(_settings.ApiKey))
-            {
-                logger.LogError("GenAI API key is not configured");
-                throw new ServiceException("GenAI API key is not configured");
-            }
+            if (!string.IsNullOrWhiteSpace(_settings.ApiKey))
+                return;
+
+            logger.LogError("GenAI API key is not configured");
+            throw new ServiceException("GenAI API key is not configured");
         }
 
         private string TruncateText(string text)
         {
             return text.Length > MaxTextLength
-                ? text.Substring(0, MaxTextLength) + "... [truncated]"
+                ? string.Concat(text.AsSpan(0, MaxTextLength), "... [truncated]")
                 : text;
         }
 
@@ -172,9 +220,9 @@ namespace GenAIWorker.Services
             {
                 Contents =
                 [
-                    new()
+                    new GeminiContent
                     {
-                        Parts = [new() { Text = prompt }]
+                        Parts = [new GeminiPart(text: prompt)]
                     }
                 ],
                 GenerationConfig = new GeminiGenerationConfig
@@ -186,7 +234,7 @@ namespace GenAIWorker.Services
         }
 
         private async Task<T> ExecuteGeminiRequestAsync<T>(
-            GeminiGenerateContentRequest request, 
+            GeminiGenerateContentRequest request,
             Func<GeminiGenerateContentResponse, Task<T>> processResponse,
             CancellationToken cancellationToken)
         {
@@ -198,19 +246,22 @@ namespace GenAIWorker.Services
                 logger.LogInformation("Calling Gemini API with model {model}", modelToUse);
 
                 HttpResponseMessage response = await httpClient.PostAsJsonAsync(url, request, cancellationToken);
-                
+
                 if (!response.IsSuccessStatusCode)
                 {
                     string errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
-                    logger.LogError("Gemini API returned error: {statusCode} - {error}", response.StatusCode, errorContent);
+                    logger.LogError("Gemini API returned error: {statusCode} - {error}", response.StatusCode,
+                        errorContent);
                     throw new ServiceException($"Failed to call GenAI service: {response.StatusCode} - {errorContent}");
                 }
 
-                GeminiGenerateContentResponse? jsonResponse = await response.Content.ReadFromJsonAsync<GeminiGenerateContentResponse>(cancellationToken: cancellationToken);
-                
+                GeminiGenerateContentResponse? jsonResponse =
+                    await response.Content.ReadFromJsonAsync<GeminiGenerateContentResponse>(
+                        cancellationToken: cancellationToken);
+
                 if (jsonResponse == null)
                 {
-                     throw new ServiceException("Received null response from GenAI service");
+                    throw new ServiceException("Received null response from GenAI service");
                 }
 
                 return await processResponse(jsonResponse);
@@ -232,61 +283,62 @@ namespace GenAIWorker.Services
             }
             catch (Exception ex) when (ex is not ServiceException)
             {
-                 logger.LogError(ex, "Unexpected error in GenAIService");
-                 throw new ServiceException("Unexpected error in GenAI service", ex);
+                logger.LogError(ex, "Unexpected error in GenAIService");
+                throw new ServiceException("Unexpected error in GenAI service", ex);
             }
         }
 
         private async Task<string> GetBestAvailableModelAsync(CancellationToken cancellationToken)
         {
-             try
-             {
-                 string listUrl = $"{BaseUrl}/models?key={_settings.ApiKey}";
-                 HttpResponseMessage listResponse = await httpClient.GetAsync(listUrl, cancellationToken);
-                 
-                 if (listResponse.IsSuccessStatusCode)
-                 {
-                     GeminiModelListResponse? modelList = await listResponse.Content.ReadFromJsonAsync<GeminiModelListResponse>(cancellationToken: cancellationToken);
-                     
-                     if (modelList?.Models != null)
-                     {
-                         var modelNames = modelList.Models.Select(m => m.Name).ToList();
-                         logger.LogInformation("Available GenAI models: {models}", string.Join(", ", modelNames));
+            try
+            {
+                string listUrl = $"{BaseUrl}/models?key={_settings.ApiKey}";
+                HttpResponseMessage listResponse = await httpClient.GetAsync(listUrl, cancellationToken);
 
-                         GeminiModel? preferredModel = modelList.Models
-                             .FirstOrDefault(m => 
-                                 m.Name != null &&
-                                 m.Name.Contains("gemini") &&
-                                 (m.Name.Contains("flash") || m.Name.Contains("pro")) &&
-                                 m.SupportedGenerationMethods != null &&
-                                 m.SupportedGenerationMethods.Contains("generateContent"));
+                if (listResponse.IsSuccessStatusCode)
+                {
+                    GeminiModelListResponse? modelList =
+                        await listResponse.Content.ReadFromJsonAsync<GeminiModelListResponse>(
+                            cancellationToken: cancellationToken);
 
-                         if (preferredModel?.Name != null)
-                         {
-                             string modelName = preferredModel.Name.Replace("models/", "");
-                             logger.LogInformation("Discovered preferred model: {model}", modelName);
-                             return modelName;
-                         }
-                         else 
-                         {
-                             logger.LogWarning("No suitable Gemini model found in list. Falling back to configured model.");
-                         }
-                     }
-                 }
-                 else
-                 {
-                      logger.LogWarning("Failed to list models. Status: {status}", listResponse.StatusCode);
-                 }
-             }
-             catch (Exception ex)
-             {
-                 logger.LogError(ex, "Could not list available models, falling back to configured model");
-             }
+                    if (modelList?.Models != null)
+                    {
+                        List<string?> modelNames = modelList.Models.Select(m => m.Name).ToList();
+                        logger.LogInformation("Available GenAI models: {models}", string.Join(", ", modelNames));
 
-             return _settings.Model;
+                        GeminiModel? preferredModel = modelList.Models
+                            .FirstOrDefault(m =>
+                                m.Name != null &&
+                                m.Name.Contains("gemini") &&
+                                (m.Name.Contains("flash") || m.Name.Contains("pro")) &&
+                                m.SupportedGenerationMethods != null &&
+                                m.SupportedGenerationMethods.Contains("generateContent"));
+
+                        if (preferredModel?.Name != null)
+                        {
+                            string modelName = preferredModel.Name.Replace("models/", "");
+                            logger.LogInformation("Discovered preferred model: {model}", modelName);
+                            return modelName;
+                        }
+
+                        logger.LogWarning(
+                            "No suitable Gemini model found in list. Falling back to configured model.");
+                    }
+                }
+                else
+                {
+                    logger.LogWarning("Failed to list models. Status: {status}", listResponse.StatusCode);
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Could not list available models, falling back to configured model");
+            }
+
+            return _settings.Model;
         }
 
-
+        [System.Text.RegularExpressions.GeneratedRegex(@"^[-•\d.\s]+")]
+        private static partial System.Text.RegularExpressions.Regex MyRegex();
     }
 }
-
