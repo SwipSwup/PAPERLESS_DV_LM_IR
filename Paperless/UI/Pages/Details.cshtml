@@ -51,8 +51,8 @@
                     </div>
 
                     <div class="mb-4">
-                        <label class="text-muted block mb-2">Tags</label>
-                        <div id="tagsList" class="d-flex gap-2 mb-2" style="flex-wrap: wrap;"></div>
+                        <label class="text-muted block" style="margin-bottom: 0.5rem; display: block;">Tags</label>
+                        <div id="tagsList" class="d-flex" style="flex-wrap: wrap; gap: 0.5rem; row-gap: 0.5rem; margin-bottom: 0.5rem;"></div>
                         
                         <div class="d-flex flex-col gap-2 mt-2">
                              <div class="d-flex gap-2">
@@ -111,6 +111,7 @@
     const id = urlParams.get('id');
     let currentDoc = null;
     let selectedColor = '#3b82f6';
+    let pollInterval;
 
     function toggleColorMenu() {
         const menu = document.getElementById('colorMenu');
@@ -140,7 +141,7 @@
         document.getElementById('colorMenu').style.display = 'none';
     }
 
-    async function loadDetails() {
+    async function loadDetails(isPolling = false) {
         if (!id) return;
         try {
             const res = await fetch(`http://localhost:8081/api/document/${id}`);
@@ -150,14 +151,18 @@
 
             document.getElementById('docTitle').innerText = doc.fileName;
             document.getElementById('docDate').innerText = new Date(doc.uploadedAt).toLocaleString();
-            document.getElementById('ocrText').innerText = doc.ocrText || 'No OCR text available.';
+            if (doc.ocrText) {
+                document.getElementById('ocrText').innerText = doc.ocrText;
+            } else {
+                 document.getElementById('ocrText').innerHTML = '<div class="d-flex align-center gap-2 text-muted"><i class="fas fa-circle-notch fa-spin"></i> <span>Processing OCR...</span></div>';
+            }
             
             // Display summary
             const summaryEl = document.getElementById('docSummary');
             if (doc.summary && doc.summary.trim()) {
                 summaryEl.innerHTML = `<p style="margin: 0;">${doc.summary}</p>`;
             } else {
-                summaryEl.innerHTML = '<span class="text-muted">No summary available yet. Summary will be generated automatically after OCR processing.</span>';
+                summaryEl.innerHTML = '<div class="d-flex align-center gap-2 text-muted"><i class="fas fa-circle-notch fa-spin"></i> <span>Generating summary...</span></div>';
             }
             
             renderTags(doc.tags || []);
@@ -165,18 +170,25 @@
             const downloadUrl = `http://localhost:8081/api/document/${id}/download`;
             document.getElementById('downloadBtn').href = downloadUrl;
             document.getElementById('fallbackLink').href = downloadUrl;
-            document.getElementById('pdfObject').data = downloadUrl;
+            if (!isPolling) document.getElementById('pdfObject').data = downloadUrl;
+
+            // Auto-poll if processing
+            if (!doc.ocrText || !doc.summary || !doc.summary.trim()) {
+                 if (!pollInterval) pollInterval = setInterval(() => loadDetails(true), 3000);
+            } else {
+                 if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
+            }
 
         } catch (e) {
             console.error(e);
-            alert('Failed to load document');
+            if (!isPolling) alert('Failed to load document');
         }
     }
 
     function renderTags(tags) {
         const container = document.getElementById('tagsList');
         container.innerHTML = tags.map(t => `
-            <span class="badge d-flex align-center gap-2" style="padding-right: 0.4rem; background-color: ${t.color || 'var(--secondary)'}; color: ${t.color ? '#fff' : 'inherit'};">
+            <span class="badge d-flex align-center gap-2" style="background-color: ${t.color || 'var(--secondary)'}; color: ${t.color ? '#fff' : 'inherit'}; padding: 0.25rem 0.6rem;">
                 ${t.name} 
                 <i class="fas fa-times" style="cursor: pointer; opacity: 0.5;" onclick="removeTag('${t.name}')"></i>
             </span>

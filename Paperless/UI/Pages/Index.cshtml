@@ -4,57 +4,75 @@
     ViewData["Title"] = "Dashboard";
 }
 
-<div class="animate-fade-in">
+<div class="animate-fade-in" style="max-width: 1400px; margin: 0 auto; padding: 2rem;">
     <!-- Hero / Drag Drop Zone -->
     <div class="mb-4">
-        <div id="dropZone" class="card d-flex flex-col align-center justify-center text-center"
-             style="height: 300px; border: 2px dashed var(--border-color); background: radial-gradient(circle at center, rgba(245, 158, 11, 0.05), transparent 70%); cursor: pointer;">
-            <i class="fas fa-cloud-upload-alt mb-2" style="font-size: 3rem; color: var(--accent-primary);"></i>
-            <h2 class="mb-2">Drag & Drop to Upload</h2>
-            <p class="text-muted mb-4">or click to browse your files</p>
-            <button class="btn btn-primary"
-                    onclick="event.stopPropagation(); document.getElementById('fileInput').click()">Browse Files
-            </button>
+        <div id="dropZone" class="card d-flex flex-col align-center justify-center text-center animate-scale-in"
+             style="height: 350px; border: 2px dashed rgba(255, 255, 255, 0.1); background: rgba(0, 0, 0, 0.2); cursor: pointer; position: relative; overflow: hidden; transition: all 0.3s ease;">
+            
+            <div style="position: absolute; inset: 0; background: radial-gradient(circle at center, rgba(245, 158, 11, 0.08), transparent 70%); pointer-events: none;"></div>
+            
+            <div style="z-index: 10; display: flex; flex-direction: column; align-items: center; gap: 1rem;">
+                <div style="width: 80px; height: 80px; background: rgba(245, 158, 11, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 1rem;">
+                    <i class="fas fa-cloud-upload-alt" style="font-size: 2.5rem; color: var(--accent-primary);"></i>
+                </div>
+                <h2 class="mb-2" style="font-size: 2rem; font-weight: 700;">Drag & Drop to Upload</h2>
+                <p class="text-muted mb-4" style="font-size: 1.1rem; max-width: 400px;">Drag your PDF or Image files here, or click to browse your device.</p>
+                <button class="btn btn-primary"
+                        onclick="event.stopPropagation(); document.getElementById('fileInput').click()">
+                    <i class="fas fa-folder-open"></i> Browse Files
+                </button>
+            </div>
             <input type="file" id="fileInput" hidden multiple accept=".pdf,.png,.jpg,.jpeg">
         </div>
     </div>
 
     <!-- Recent Documents -->
-    <div class="d-flex align-center justify-between mb-4">
-        <h3>Recent Documents</h3>
+    <div class="d-flex align-center justify-between mb-4 mt-4 animate-slide-up" style="animation-delay: 0.1s;">
+        <h3 style="font-size: 1.5rem; display: flex; align-items: center; gap: 0.75rem;">
+            <i class="fas fa-clock text-accent"></i> Recent Documents
+        </h3>
+        <a href="/Documents" class="btn btn-secondary" style="font-size: 0.9rem;">View All <i class="fas fa-arrow-right"></i></a>
     </div>
-    <div id="recentDocsGrid"
-         style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem;">
+    
+    <div id="recentDocsGrid" class="dashboard-grid animate-slide-up" style="animation-delay: 0.2s;">
         <!-- Grid Items -->
     </div>
 </div>
+
 <!-- Upload Preview Modal -->
 <div id="uploadModal"
-     style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 100; align-items: center; justify-content: center;">
-    <div class="card" style="width: 500px; max-width: 90%; max-height: 80vh; display: flex; flex-direction: column;">
-        <div class="d-flex justify-between align-center mb-4">
-            <h3 style="margin: 0;">Confirm Upload</h3>
-            <button class="btn btn-secondary p-0" style="width: 30px; height: 30px;" onclick="closeModal()">
+     style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); z-index: 1000; align-items: center; justify-content: center;">
+    <div class="card animate-scale-in" style="width: 600px; max-width: 90%; max-height: 85vh; display: flex; flex-direction: column; background: #18181b; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);">
+        <div class="d-flex justify-between align-center mb-4" style="border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 1rem;">
+            <h3 style="margin: 0; display: flex; align-items: center; gap: 0.75rem;">
+                <i class="fas fa-cloud-upload-alt text-accent"></i> Confirm Upload
+            </h3>
+            <button class="btn p-0" style="width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.05);" onclick="closeModal()">
                 <i class="fas fa-times"></i>
             </button>
         </div>
 
         <div id="uploadList"
-             style="flex: 1; overflow-y: auto; margin-bottom: 1rem; border: 1px solid var(--border-color); border-radius: var(--radius);">
+             style="flex: 1; overflow-y: auto; margin-bottom: 1.5rem; background: rgba(0,0,0,0.2); border-radius: var(--radius); padding: 0.5rem;">
             <!-- Items injected here -->
         </div>
 
-        <div id="uploadProgress" class="mb-3" style="display: none;">
-            <div style="height: 6px; background: var(--secondary); border-radius: 3px; overflow: hidden;">
+        <div id="uploadProgress" class="mb-4" style="display: none;">
+            <div class="d-flex justify-between mb-2 text-muted" style="font-size: 0.85rem;">
+                <span>Uploading...</span>
+                <span id="progressText">0%</span>
+            </div>
+            <div style="height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden;">
                 <div id="progressBar"
-                     style="width: 0%; height: 100%; background: var(--accent-primary); transition: width 0.3s;"></div>
+                     style="width: 0%; height: 100%; background: var(--accent-primary); transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 0 10px rgba(245, 158, 11, 0.5);"></div>
             </div>
         </div>
 
         <div class="d-flex justify-between align-center">
             <span id="fileCount" class="text-muted">0 files selected</span>
             <button class="btn btn-primary" onclick="confirmUpload()">
-                <i class="fas fa-cloud-upload-alt"></i> Upload All
+                Start Upload <i class="fas fa-arrow-right"></i>
             </button>
         </div>
     </div>
@@ -77,11 +95,19 @@
     }
 
     ['dragenter', 'dragover'].forEach(eventName => {
-        dropZone.addEventListener(eventName, () => dropZone.style.borderColor = 'var(--accent-primary)', false);
+        dropZone.addEventListener(eventName, () => {
+            dropZone.style.borderColor = 'var(--accent-primary)';
+            dropZone.style.background = 'rgba(245, 158, 11, 0.1)';
+            dropZone.style.transform = 'scale(1.02)';
+        }, false);
     });
 
     ['dragleave', 'drop'].forEach(eventName => {
-        dropZone.addEventListener(eventName, () => dropZone.style.borderColor = 'var(--border-color)', false);
+        dropZone.addEventListener(eventName, () => {
+            dropZone.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+            dropZone.style.background = 'rgba(0, 0, 0, 0.2)';
+            dropZone.style.transform = 'scale(1)';
+        }, false);
     });
 
     dropZone.addEventListener('drop', handleDrop, false);
@@ -106,17 +132,25 @@
     function showModal() {
         const list = document.getElementById('uploadList');
         list.innerHTML = filesToUpload.map((f, i) => `
-            <div class="d-flex align-center gap-2 p-2" style="border-bottom: 1px solid var(--border-color);">
-                <i class="fas fa-file-pdf text-accent" style="font-size: 1.5rem;"></i>
-                <div style="flex: 1; overflow: hidden;">
-                    <div style="font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${f.name}</div>
-                    <div class="text-muted" style="font-size: 0.8rem;">${(f.size / 1024 / 1024).toFixed(2)} MB</div>
+            <div class="d-flex align-center gap-3 p-3 animate-fade-in" style="border-bottom: 1px solid rgba(255,255,255,0.05); animation-delay: ${i * 0.05}s">
+                <div style="width: 48px; height: 48px; background: rgba(59, 130, 246, 0.1); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                    <i class="fas fa-file-alt text-accent" style="font-size: 1.5rem;"></i>
                 </div>
-                <button class="btn btn-secondary" style="color: var(--danger);" onclick="removeFile(${i})">
-                    <i class="fas fa-times"></i>
+                <div style="flex: 1; overflow: hidden;">
+                    <div style="font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 1rem;">${f.name}</div>
+                    <div class="text-muted" style="font-size: 0.85rem;">${(f.size / 1024 / 1024).toFixed(2)} MB</div>
+                </div>
+                <button class="btn p-0" style="width: 32px; height: 32px; border-radius: 50%; color: var(--text-secondary); background: transparent;" onclick="removeFile(${i})">
+                    <i class="fas fa-trash-alt" style="font-size: 1rem; transition: color 0.2s;"></i>
                 </button>
             </div>
         `).join('');
+        
+        // Add hover effect via JS/CSS or inline
+        document.querySelectorAll('#uploadList button i').forEach(icon => {
+           icon.parentElement.addEventListener('mouseenter', () => icon.style.color = '#ef4444'); 
+           icon.parentElement.addEventListener('mouseleave', () => icon.style.color = ''); 
+        });
 
         document.getElementById('fileCount').innerText = `${filesToUpload.length} files selected`;
         uploadModal.style.display = 'flex';
@@ -142,11 +176,12 @@
 
         const btn = document.querySelector('#uploadModal .btn-primary');
         const originalText = btn.innerHTML;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
+        btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Uploading...';
         btn.disabled = true;
 
         document.getElementById('uploadProgress').style.display = 'block';
         const progressBar = document.getElementById('progressBar');
+        const progressText = document.getElementById('progressText');
 
         let successCount = 0;
         const total = filesToUpload.length;
@@ -165,7 +200,9 @@
                 console.error(e);
             }
 
-            progressBar.style.width = `${((i + 1) / total) * 100}%`;
+            const percent = ((i + 1) / total) * 100;
+            progressBar.style.width = `${percent}%`;
+            progressText.innerText = `${Math.round(percent)}%`;
         }
 
         btn.innerHTML = originalText;
@@ -173,6 +210,7 @@
         closeModal();
         document.getElementById('uploadProgress').style.display = 'none';
         progressBar.style.width = '0%';
+        progressText.innerText = '0%';
 
         loadDashboard();
     }
@@ -184,34 +222,63 @@
             const docs = await res.json();
 
             // Recent docs logic
-            const recentDocs = docs.sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt)).slice(0, 8);
+            const recentDocs = docs.sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt)).slice(0, 6);
 
             const grid = document.getElementById('recentDocsGrid');
             if (recentDocs.length === 0) {
-                grid.innerHTML = '<p class="text-muted">No documents found.</p>';
+                grid.innerHTML = `
+                    <div style="grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 4rem; opacity: 0.5;">
+                        <i class="fas fa-inbox" style="font-size: 4rem; margin-bottom: 1rem;"></i>
+                        <p style="font-size: 1.2rem;">No documents found. Upload some files to get started!</p>
+                    </div>
+                `;
                 return;
             }
 
-            grid.innerHTML = recentDocs.map(doc => `
-                <div class="card" onclick="window.location.href='/Details?id=${doc.id}'" style="cursor: pointer; position: relative; overflow: hidden; display: flex; flex-direction: column;">
+            grid.innerHTML = recentDocs.map((doc, idx) => `
+                <div class="card" onclick="window.location.href='/Details?id=${doc.id}'" 
+                     style="cursor: pointer; position: relative; overflow: hidden; display: flex; flex-direction: column; padding: 0; border: 0; animation-delay: ${idx * 0.1}s">
+                     
                      <!-- Zoomed Preview Section -->
-                    <div style="height: 180px; width: 100%; background: #27272a; overflow: hidden; position: relative; border-bottom: 1px solid var(--border-color);">
-                        <canvas id="thumb-${doc.id}" style="width: 100%; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5); transform-origin: top center;"></canvas>
-                         <div id="loading-${doc.id}" class="text-muted" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">Loading...</div>
+                    <div style="height: 180px; width: 100%; background: #000; overflow: hidden; position: relative;">
+                        <canvas id="thumb-${doc.id}" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.8; transition: transform 0.5s ease;"></canvas>
+                        <div style="position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.8), transparent); pointer-events: none;"></div>
+                         <div id="loading-${doc.id}" class="text-muted" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">
+                            <i class="fas fa-circle-notch fa-spin"></i>
+                        </div>
                     </div>
 
-                    <div class="d-flex flex-col gap-2 p-2" style="padding-top: 0.5rem;">
-                        <h4 style="margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 1rem;" title="${doc.fileName}">${doc.fileName}</h4>
-                        <span class="text-muted" style="font-size: 0.8rem;">${new Date(doc.uploadedAt).toLocaleDateString()}</span>
-                        <div class="d-flex gap-2" style="flex-wrap: wrap;">
-                            ${(doc.tags || []).map(t => `<span class="badge">${t.name || t}</span>`).join('')}
+                    <div class="d-flex flex-col gap-2" style="background: rgba(24, 24, 27, 0.4); flex: 1; border-top: 1px solid rgba(255,255,255,0.05); padding: 0.75rem 1rem;">
+                        <div class="d-flex justify-between align-start">
+                            <h4 style="margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 1.1rem; flex: 1; padding-right: 1rem;" title="${doc.fileName}">${doc.fileName}</h4>
+                            <i class="fas fa-external-link-alt text-muted" style="font-size: 0.8rem;"></i>
+                        </div>
+                        
+                        <div class="d-flex align-center gap-2 text-muted" style="font-size: 0.85rem;">
+                             <i class="far fa-calendar-alt"></i>
+                             <span>${new Date(doc.uploadedAt).toLocaleDateString()}</span>
+                        </div>
+
+                        <div class="d-flex gap-2 mt-2" style="flex-wrap: wrap;">
+                            ${(doc.tags || []).map(t => {
+                                const name = t.name || t;
+                                const color = t.color || 'rgba(255, 255, 255, 0.1)';
+                                // Determine text color based on background (simple heuristic: if color given, assume white text, else default)
+                                const textColor = t.color ? '#fff' : 'var(--text-secondary)';
+                                return `<span class="badge" style="background-color: ${color}; color: ${textColor}; border-color: ${t.color ? 'transparent' : ''}">${name}</span>`;
+                            }).join('')}
                         </div>
                     </div>
                 </div>
             `).join('');
 
-            // Trigget thumbnail generation
+            // Trigger thumbnail generation
             recentDocs.forEach(doc => generateThumbnail(doc.id));
+
+            // Use CSS for hover effect on canvas
+            const style = document.createElement('style');
+            style.innerHTML = `.card:hover canvas { transform: scale(1.1); opacity: 1 !important; }`;
+            document.head.appendChild(style);
 
         } catch (e) {
             console.error(e);
@@ -225,8 +292,8 @@
             const pdf = await loadingTask.promise;
             const page = await pdf.getPage(1);
 
-            // Render at high quality, then CSS scales it down to fit/zoom
-            const scale = 1.0;
+            // Render at high quality
+            const scale = 1.5;
             const viewport = page.getViewport({scale: scale});
             const canvas = document.getElementById(`thumb-${docId}`);
             if (!canvas) return;
@@ -245,11 +312,11 @@
             if (loadingEl) loadingEl.style.display = 'none';
 
         } catch (e) {
-            console.error(`Error generating thumbnail for ${docId}`, e);
-            const canvas = document.getElementById(`thumb-${docId}`);
+           console.error(`Error generating thumbnail for ${docId}`, e);
+           const canvas = document.getElementById(`thumb-${docId}`);
             if (canvas) {
                 const parent = canvas.parentElement;
-                parent.innerHTML = '<div style="height: 100%; display: flex; align-items: center; justify-content: center;"><i class="fas fa-file-pdf text-accent" style="font-size: 3rem;"></i></div>';
+                parent.innerHTML = '<div style="height: 100%; display: flex; align-items: center; justify-content: center; background: #1f1f23;"><i class="fas fa-file-pdf text-accent" style="font-size: 3rem; opacity: 0.5;"></i></div>';
             }
         }
     }

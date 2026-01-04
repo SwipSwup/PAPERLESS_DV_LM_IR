@@ -4,32 +4,46 @@
     ViewData["Title"] = "Documents";
 }
 
-<div class="animate-fade-in">
+<div class="animate-fade-in" style="max-width: 1400px; margin: 0 auto; padding: 2rem;">
+    <!-- Header & Actions -->
     <div class="d-flex justify-between align-center mb-4">
-        <h1>Documents</h1>
-        <a href="/" class="btn btn-primary"><i class="fas fa-plus"></i> Upload</a>
+        <h1 style="display: flex; align-items: center; gap: 0.75rem;">
+            <i class="fas fa-layer-group text-accent"></i> Documents
+        </h1>
+        <a href="/" class="btn btn-primary">
+            <i class="fas fa-cloud-upload-alt"></i> Upload New
+        </a>
     </div>
 
     <!-- Search & Filter Bar -->
-    <div class="card mb-4" style="padding: 0.75rem;">
-        <div class="d-flex align-center gap-3">
-             <div class="flex-1">
-                <input type="text" class="form-control" id="searchInput" placeholder="Search documents... (Press Enter)" 
+    <div class="card mb-4 animate-slide-up" style="padding: 1rem; position: sticky; top: 100px; z-index: 40; backdrop-filter: blur(20px);">
+        <div class="d-flex align-center gap-4">
+             <div class="flex-1 position-relative" style="min-width: 200px; flex-grow: 1;">
+                <i class="fas fa-search text-muted" style="position: absolute; left: 1.5rem; top: 50%; transform: translateY(-50%);"></i>
+                <input type="text" class="form-control" id="searchInput" 
+                       placeholder="Search documents by name, content or tags..." 
+                       style="padding-left: 3.5rem; background: rgba(0,0,0,0.2); width: 100%; max-width: none;"
                        onkeypress="if(event.key === 'Enter') performSearch()">
             </div>
-            <div style="border-left: 1px solid var(--border-color); height: 24px;"></div>
-            <div class="d-flex gap-2">
-                <select class="form-control" style="width: auto; background: transparent; border: none; color: var(--text-secondary);">
-                    <option>Sort by Date</option>
-                    <option>Sort by Name</option>
-                </select>
-                <button class="btn btn-primary" type="button" onclick="performSearch()">Search</button>
+            
+            <div style="height: 30px; width: 1px; background: rgba(255,255,255,0.1);"></div>
+            
+            <div class="d-flex gap-3">
+                 <div class="d-flex align-center gap-2 text-muted">
+                    <i class="fas fa-sort-amount-down"></i>
+                    <select id="sortSelect" class="form-control" style="width: auto; background: #09090b; border: 1px solid rgba(255,255,255,0.1); padding: 0.5rem 2rem 0.5rem 1rem; cursor: pointer; color: var(--text-primary); appearance: auto;" onchange="performSearch()">
+                        <option value="date_desc" style="background: #09090b; color: #fff;">Newest First</option>
+                        <option value="date_asc" style="background: #09090b; color: #fff;">Oldest First</option>
+                        <option value="name_asc" style="background: #09090b; color: #fff;">Name (A-Z)</option>
+                        <option value="name_desc" style="background: #09090b; color: #fff;">Name (Z-A)</option>
+                    </select>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- Documents Grid -->
-    <div class="dashboard-grid" id="documentsGrid">
+    <div class="dashboard-grid animate-slide-up" id="documentsGrid" style="animation-delay: 0.1s;">
         <!-- Injected via JS -->
         <p class="text-muted">Loading...</p>
     </div>
@@ -37,10 +51,15 @@
 
 <script>
     let allDocs = [];
+    let refreshInterval;
 
     async function loadDocuments(searchTerm = '') {
         const grid = document.getElementById('documentsGrid');
-        grid.innerHTML = '<p class="text-muted">Loading...</p>';
+        
+        // Don't clear if merely re-sorting local data or refreshing
+        if (!searchTerm && allDocs.length === 0) {
+            grid.innerHTML = '<div class="col-span-full text-center p-4"><i class="fas fa-circle-notch fa-spin text-accent" style="font-size: 2rem;"></i></div>';
+        }
         
         try {
             let url = '/api/document';
@@ -51,12 +70,44 @@
             const res = await fetch(url);
             if (!res.ok) throw new Error(`API Error ${res.status}`);
             
-            const docs = await res.json();
-            renderDocs(docs);
+            let docs = await res.json();
+            
+            // Client-side sort for now
+            const sortVal = document.getElementById('sortSelect').value;
+            sortDocs(docs, sortVal);
+            
+            // Only re-render if something changed (simple check: ID list)
+            const newIds = docs.map(d => d.id).join(',');
+            const oldIds = allDocs.map(d => d.id).join(',');
+            
+            // Also check if status changed (e.g. summary was null now is set)
+            // Simplified: just check if JSON stringified is different or just re-render
+            const contentChanged = JSON.stringify(docs) !== JSON.stringify(allDocs);
+
+            if (contentChanged) {
+                 allDocs = docs;
+                 renderDocs(docs);
+            }
         } catch (e) {
             console.error(e);
-            grid.innerHTML = `<p class="text-danger">Failed to load documents: ${e.message}</p>`;
+            // Don't show error on auto-refresh, just log
+            if (!refreshInterval) grid.innerHTML = `<p class="text-danger">Failed to load documents: ${e.message}</p>`;
         }
+    }
+
+    function setupAutoRefresh() {
+        if (refreshInterval) clearInterval(refreshInterval);
+        refreshInterval = setInterval(() => {
+            const term = document.getElementById('searchInput').value;
+            loadDocuments(term);
+        }, 5000); // 5 seconds
+    }
+
+    function sortDocs(docs, sortVal) {
+        if (sortVal === 'date_desc') docs.sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
+        if (sortVal === 'date_asc') docs.sort((a, b) => new Date(a.uploadedAt) - new Date(b.uploadedAt));
+        if (sortVal === 'name_asc') docs.sort((a, b) => a.fileName.localeCompare(b.fileName));
+        if (sortVal === 'name_desc') docs.sort((a, b) => b.fileName.localeCompare(a.fileName));
     }
 
     function performSearch() {
@@ -67,54 +118,71 @@
     function renderDocs(docs) {
         const grid = document.getElementById('documentsGrid');
         
-        // Change grid to list layout
-        grid.style.display = 'flex';
-        grid.style.flexDirection = 'column';
-        grid.style.gap = '1rem';
-
         if (docs.length === 0) {
-            grid.innerHTML = '<p class="text-muted">No documents found.</p>';
+            grid.innerHTML = `
+                <div style="grid-column: 1 / -1; text-align: center; padding: 4rem; opacity: 0.5;">
+                    <i class="fas fa-search" style="font-size: 4rem; margin-bottom: 1rem;"></i>
+                    <p class="text-muted" style="font-size: 1.2rem;">No documents found matching your criteria.</p>
+                </div>
+            `;
             return;
         }
 
-        grid.innerHTML = docs.map(doc => `
-             <div class="card d-flex flex-row gap-4 p-0 overflow-hidden" onclick="window.location.href='/Details?id=${doc.id}'" style="cursor: pointer; height: 200px; transition: transform 0.2s; align-items: stretch;">
+        grid.innerHTML = docs.map((doc, idx) => `
+             <div class="card p-0 overflow-hidden animate-scale-in" onclick="window.location.href='/Details?id=${doc.id}'" 
+                  style="cursor: pointer; display: flex; flex-direction: column; animation-delay: ${idx * 0.05}s; transform: scale(0.95);">
                 
-                <!-- Left: Preview -->
-                <div style="background: #27272a; width: 200px; min-width: 200px; position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden; border-right: 1px solid var(--border-color);">
-                     <canvas id="thumb-${doc.id}" style="width: 100%; object-fit: contain;"></canvas>
-                     <div id="loading-${doc.id}" class="text-muted" style="position: absolute; font-size: 0.8rem;">Loading...</div>
+                <!-- Preview -->
+                <div style="height: 180px; width: 100%; background: #000; position: relative; overflow: hidden; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                     <canvas id="thumb-${doc.id}" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.85; transition: transform 0.5s ease;"></canvas>
+                     <div style="position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.8), transparent 50%); pointer-events: none;"></div>
+                     
+                     <div id="loading-${doc.id}" class="text-muted" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">
+                        <i class="fas fa-circle-notch fa-spin"></i>
+                     </div>
                 </div>
                 
-                <!-- Right: Info -->
-                <div class="d-flex flex-col justify-between p-3 flex-1" style="min-width: 0;">
-                    <div>
-                        <div class="d-flex justify-between align-start gap-2">
-                            <h4 style="margin: 0; font-size: 1.15rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${doc.fileName}">${doc.fileName}</h4>
-                            <span class="text-muted" style="font-size: 0.85rem; flex-shrink: 0;">${new Date(doc.uploadedAt).toLocaleDateString()}</span>
-                        </div>
-                        
-                        <div class="mt-2 text-muted" style="font-size: 0.9rem; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; height: 3em;">
-                             ${doc.summary ? doc.summary : (doc.ocrText ? doc.ocrText.substring(0, 300) : 'No preview text available.')}
-                        </div>
+                <!-- Info -->
+                <div class="d-flex flex-col gap-2" style="flex: 1; background: rgba(24, 24, 27, 0.4); padding: 0.75rem 1rem;">
+                    <div class="d-flex justify-between align-start">
+                        <h4 style="margin: 0; font-size: 1.1rem; font-weight: 600; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;" title="${doc.fileName}">${doc.fileName}</h4>
+                    </div>
+                    
+                    <div class="d-flex align-center gap-2 text-muted" style="font-size: 0.85rem;">
+                         <i class="far fa-clock"></i>
+                         <span>${new Date(doc.uploadedAt).toLocaleDateString()}</span>
+                         <span style="opacity: 0.3;">|</span>
+                         <i class="fas fa-file-alt"></i>
+                         <span>${doc.id}</span>
                     </div>
 
-                    <div class="d-flex gap-2 mt-3" style="flex-wrap: wrap;">
-                        ${(doc.tags || []).map(t => `
-                            <span class="badge" style="background-color: ${t.color || 'var(--secondary)'}; color: ${t.color ? '#fff' : 'inherit'};">
-                                ${t.name || t}
-                            </span>
-                        `).join('')}
+                    <div class="mt-2 text-muted" style="font-size: 0.85rem; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; height: 2.6em; opacity: 0.7;">
+                         ${(doc.summary || doc.ocrText) ? (doc.summary || doc.ocrText) : '<span class="d-flex align-center gap-2"><i class="fas fa-circle-notch fa-spin"></i> Processing...</span>'}
+                    </div>
+
+                    <div class="d-flex gap-2 mt-auto pt-3" style="flex-wrap: wrap;">
+                        ${(doc.tags || []).slice(0, 4).map(t => {
+                                const name = t.name || t;
+                                const color = t.color || 'rgba(255, 255, 255, 0.1)';
+                                const textColor = t.color ? '#fff' : 'var(--text-secondary)';
+                                return `<span class="badge" style="background-color: ${color}; color: ${textColor}; border-color: ${t.color ? 'transparent' : ''}">${name}</span>`;
+                        }).join('')}
+                        ${(doc.tags || []).length > 4 ? `<span class="badge" style="background: rgba(255,255,255,0.1);">+${doc.tags.length - 4}</span>` : ''}
                     </div>
                 </div>
             </div>
         `).join('');
         
-        // Trigger Generation
+        if (!document.getElementById('hover-styles')) {
+            const style = document.createElement('style');
+            style.id = 'hover-styles';
+            style.innerHTML = `.card:hover canvas { transform: scale(1.1); opacity: 1 !important; }`;
+            document.head.appendChild(style);
+        }
+        
         docs.forEach(doc => generateThumbnail(doc.id));
     }
     
-    // Thumbnail Logic
     async function generateThumbnail(docId) {
         try {
             const url = `/api/document/${docId}/download`;
@@ -122,7 +190,7 @@
             const pdf = await loadingTask.promise;
             const page = await pdf.getPage(1);
             
-            const scale = 0.4;
+            const scale = 1.0; 
             const viewport = page.getViewport({ scale: scale });
             const canvas = document.getElementById(`thumb-${docId}`);
             if(!canvas) return;
@@ -144,12 +212,11 @@
              const canvas = document.getElementById(`thumb-${docId}`);
            if(canvas) {
                 const parent = canvas.parentElement;
-                parent.innerHTML = '<i class="fas fa-file-pdf text-accent" style="font-size: 2rem;"></i>';
+                parent.innerHTML = '<div style="height: 100%; display: flex; align-items: center; justify-content: center; background: #1f1f23;"><i class="fas fa-file-pdf text-accent" style="font-size: 3rem; opacity: 0.5;"></i></div>';
            }
         }
     }
 
-    // Check for search query param on load
     const urlParams = new URLSearchParams(window.location.search);
     const searchParam = urlParams.get('search');
     if (searchParam) {
@@ -158,4 +225,6 @@
     } else {
         loadDocuments();
     }
+    
+    setupAutoRefresh();
 </script>
