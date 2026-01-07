@@ -1,29 +1,8 @@
 # Paperless Document Management System
 
-A comprehensive document management system built with .NET 9, featuring OCR processing, AI-powered summarization, full-text search, and a modern web interface. The system is designed with a microservices architecture using Docker containers and message queues for scalable document processing.
+A comprehensive document management system built with .NET 8, featuring OCR processing, AI-powered summarization, full-text search, and a modern web interface. The system is designed with a microservices architecture using Docker containers and message queues for scalable document processing.
 
-## Integration Tests (Sprint 7)
-To verify the Batch Processing feature, we have provided an automated PowerShell script.
-
-### Prerequisites
-- Docker usage must be running (`docker-compose up`).
-- At least one document must exist in the database.
-
-### How to Run
-1. Open PowerShell.
-2. Navigate to `Paperless/tests`.
-3. Run the script:
-   ```powershell
-   ./integration_test.ps1
-   ```
-
-The script will:
-- Check current access count of a document.
-- Generate a test XML in `batch_input`.
-- Wait for processing.
-- Verify the access count increased.
-
-## 🏗️ Architecture Overview
+## Architecture Overview
 
 The system follows a clean architecture pattern with the following layers:
 
@@ -34,7 +13,7 @@ The system follows a clean architecture pattern with the following layers:
 - **UI**: Blazor Server web application
 - **Workers**: Background services for document processing
 
-## 🛠️ Technology Stack
+## Technology Stack
 
 ### Backend
 - **.NET 8** - Latest .NET framework
@@ -48,37 +27,22 @@ The system follows a clean architecture pattern with the following layers:
 
 ### Frontend
 - **Blazor Server** - Interactive web UI
-- **Bootstrap** - CSS framework (inferred from typical Blazor setup)
+- **Bootstrap** - CSS framework
 
 ### Infrastructure
 - **Docker & Docker Compose** - Containerization and orchestration
 - **Message Queues** - Asynchronous processing
 - **Microservices Architecture** - Scalable service design
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 Paperless/
 ├── API/                    # REST API layer
-│   ├── Controllers/        # API controllers
-│   ├── Program.cs         # API startup configuration
-│   └── Dockerfile         # API container definition
 ├── BL/                     # Business Logic layer
-│   ├── Services/          # Business services
-│   └── Mappings/          # AutoMapper profiles
 ├── Core/                   # Domain layer
-│   ├── Models/            # Domain models
-│   ├── DTOs/              # Data Transfer Objects
-│   └── Repositories/      # Repository interfaces
 ├── DAL/                    # Data Access layer
-│   ├── Models/            # Entity models
-│   ├── Repositories/      # Repository implementations
-│   ├── Migrations/        # EF Core migrations
-│   └── PaperlessDBContext.cs
 ├── UI/                     # Blazor Server application
-│   ├── Components/        # Blazor components
-│   ├── wwwroot/          # Static web assets
-│   └── Program.cs        # UI startup configuration
 ├── Workers/               # Background services
 │   ├── OcrWorker/        # OCR processing service
 │   ├── GenAIWorker/      # AI summarization service
@@ -88,7 +52,7 @@ Paperless/
 └── compose.yaml          # Docker Compose configuration
 ```
 
-## 🐳 Services Architecture
+## Services Architecture
 
 The system consists of the following services:
 
@@ -108,20 +72,68 @@ The system consists of the following services:
 - **Elasticsearch** (Port 9200) - Search engine
 - **MinIO** (Port 9000/9001) - Object storage
 
-## 🚀 Access the application
+## Configuration
 
-   - Web UI: http://localhost:5012
-   - API: http://localhost:8085
-   - RabbitMQ Management: http://localhost:15672
-   - MinIO Console: http://localhost:9001
-   - Elasticsearch: http://localhost:9200
+### Environment Variables
+The application requires a `.env` file in the `Paperless/` root directory to configure the GenAI service.
+
+1. Create a file named `.env` in the `Paperless/` directory.
+2. Add your Google Gemini API key:
+   ```
+   GENAI_API_KEY=your_actual_api_key_here
+   ```
+
+## Getting Started
+
+### Prerequisites
+- Docker and Docker Compose installed
+- Git installed
+- Valid Gemini API Key
+
+### Installation and Run
+1. Clone the repository.
+2. Ensure the `.env` file is created as described in the Configuration section.
+3. Navigate to the `Paperless` directory.
+4. Build and start the services using Docker Compose:
+   ```bash
+   docker-compose up --build -d
+   ```
+
+## Integration Tests
+To verify the Batch Processing feature, we have provided an automated PowerShell script.
+
+### Prerequisites
+- Docker services must be running (`docker-compose up`).
+- At least one document must exist in the database.
+
+### How to Run
+1. Open PowerShell.
+2. Navigate to `Paperless/tests`.
+3. Run the script:
+   ```powershell
+   ./integration_test.ps1
+   ```
+
+The script will:
+- Check current access count of a document.
+- Generate a test XML in `batch_input`.
+- Wait for processing.
+- Verify the access count increased.
+
+## Access the Application
+
+- **Web UI**: http://localhost:5012
+- **API**: http://localhost:8085
+- **RabbitMQ Management**: http://localhost:15672
+- **MinIO Console**: http://localhost:9001
+- **Elasticsearch**: http://localhost:9200
 
 ### Default Credentials
 - **PostgreSQL**: admin/admin
 - **MinIO**: admin/password123
-- **RabbitMQ**: guest/guest
+- **RabbitMQ**: admin/admin
 
-## 📚 API Documentation
+## API Documentation
 
 ### Document Endpoints
 
@@ -150,7 +162,7 @@ The system consists of the following services:
 | GET | `/api/accesslog` | Get access logs |
 | GET | `/api/accesslog/{id}` | Get access log by ID |
 
-## 📊 Data Models
+## Data Models
 
 ### Document
 - **Id**: Unique identifier

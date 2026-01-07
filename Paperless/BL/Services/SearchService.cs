@@ -17,7 +17,7 @@ namespace BL.Services
             {
                 SearchResponse<DocumentDto> response = await elasticClient.SearchAsync<DocumentDto>(s => s
                     .Index(IndexName)
-                    .Size(20) // TODO: Make dynamic
+                    .Size(20) 
                     .Query(q => q
                         .Bool(b => b
                             .Should(

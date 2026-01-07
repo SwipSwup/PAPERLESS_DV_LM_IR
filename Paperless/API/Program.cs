@@ -59,12 +59,6 @@ builder.Services.AddSingleton<ElasticsearchClient>(sp =>
 });
 
 // --------------------
-// Register Messager
-// --------------------
-// --------------------
-// Register Messager & Storage
-// --------------------
-// --------------------
 // Register Messager & Storage
 // --------------------
 builder.Services.Configure<RabbitMqSettings>(builder.Configuration.GetSection("RabbitMq"));
@@ -127,12 +121,6 @@ builder.WebHost.ConfigureKestrel(options =>
 
 WebApplication app = builder.Build();
 
-// --------------------
-// Configure Middleware
-// --------------------
-// --------------------
-// Configure Middleware
-// --------------------
 // --------------------
 // Configure Middleware
 // --------------------

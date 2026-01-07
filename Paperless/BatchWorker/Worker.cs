@@ -1,5 +1,6 @@
 using System.Xml.Linq;
 using DAL;
+using DAL.Models;
 
 namespace BatchWorker;
 
@@ -43,7 +44,7 @@ public class Worker(ILogger<Worker> logger, IServiceProvider serviceProvider, IC
                     logger.LogInformation("Starting scheduled batch processing. Found {count} files.", files.Length);
 
                     using IServiceScope scope = serviceProvider.CreateScope();
-                    var dbContext = scope.ServiceProvider.GetRequiredService<PaperlessDBContext>();
+                    PaperlessDBContext dbContext = scope.ServiceProvider.GetRequiredService<PaperlessDBContext>();
 
                     foreach (string file in files)
                     {
@@ -94,7 +95,7 @@ public class Worker(ILogger<Worker> logger, IServiceProvider serviceProvider, IC
 
                 if (int.TryParse(idElement.Value, out int docId) && long.TryParse(countElement.Value, out long count))
                 {
-                    var document = await db.Documents.FindAsync([docId], ct);
+                    DocumentEntity? document = await db.Documents.FindAsync([docId], ct);
                     if (document != null)
                     {
                         document.AccessCount += count;

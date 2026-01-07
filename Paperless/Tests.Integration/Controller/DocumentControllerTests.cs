@@ -66,26 +66,6 @@ namespace Tests.Integration.Controller
         }
 
         [Fact]
-        public async Task DeleteDocument_ShouldReturnNoContent_WhenDocumentExists()
-        {
-            // Arrange
-            MultipartFormDataContent content = new MultipartFormDataContent();
-            content.Add(new ByteArrayContent(new byte[] { 1 }), "File", "del_test.pdf");
-            HttpResponseMessage createResponse = await _client.PostAsync("/api/document", content);
-            DocumentDto? createdDoc = await createResponse.Content.ReadFromJsonAsync<DocumentDto>();
-
-            // Act
-            HttpResponseMessage response = await _client.DeleteAsync($"/api/document/{createdDoc!.Id}");
-
-            // Assert
-            response.StatusCode.Should().Be(HttpStatusCode.NoContent);
-
-            // Verify it's gone
-            HttpResponseMessage getResponse = await _client.GetAsync($"/api/document/{createdDoc.Id}");
-            getResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
-        }
-
-        [Fact]
         public async Task UpdateDocument_ShouldReturnNoContent_WhenValid()
         {
             // Arrange

@@ -143,7 +143,6 @@ public class DocumentController(
         {
             Log.Error(ex,
                 "DocumentController: Failed to save document metadata. Executing compensating transaction (deleting file).");
-            // COMPENSATING ACTION: Delete the file from Storage to prevent orphans
             try
             {
                 await storageService.DeleteFileAsync(fileName);
@@ -152,8 +151,6 @@ public class DocumentController(
             }
             catch (Exception deleteEx)
             {
-                // Critical failure: Both DB save failed AND cleanup failed. 
-                // In a real system, we'd log this to a special "Orphans" table or alert.
                 Log.Fatal(deleteEx,
                     "DocumentController: Compensating transaction FAILED. File {FileName} is orphaned in MinIO.",
                     fileName);

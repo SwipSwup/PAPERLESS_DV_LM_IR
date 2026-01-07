@@ -39,7 +39,7 @@ namespace GenAIWorker.Services
 
             return await ExecuteGeminiRequestAsync(request, response =>
             {
-                var parts = response.Candidates?.FirstOrDefault()?.Content?.Parts;
+                List<GeminiPart>? parts = response.Candidates?.FirstOrDefault()?.Content?.Parts;
                 string summary = parts != null 
                     ? string.Join("", parts.Select(p => p.Text)) 
                     : string.Empty;
@@ -73,7 +73,7 @@ namespace GenAIWorker.Services
 
             return await ExecuteGeminiRequestAsync(request, response =>
             {
-                var parts = response.Candidates?.FirstOrDefault()?.Content?.Parts;
+                List<GeminiPart>? parts = response.Candidates?.FirstOrDefault()?.Content?.Parts;
                 string tagsText = parts != null 
                     ? string.Join("", parts.Select(p => p.Text)) 
                     : string.Empty;
@@ -164,7 +164,7 @@ namespace GenAIWorker.Services
                 // Remove markdown code blocks if present
                 string json = response.Replace("```json", "").Replace("```", "").Trim();
                 
-                var tags = JsonSerializer.Deserialize<List<TagDto>>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                List<TagDto>? tags = JsonSerializer.Deserialize<List<TagDto>>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
                 
                 if (tags == null) return [];
 
